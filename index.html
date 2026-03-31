@@ -6,10 +6,9 @@
 <title>英単語反復テストツール</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <style>
-  /* スマートフォンで押しやすいように余白や大きさを調整したデザイン */
   body { font-family: sans-serif; margin: 0 auto; padding: 70px 15px 20px; text-align: center; color: #333; background-color: #f4f7f6; max-width: 800px; }
   #menu-bar { position: fixed; top: 0; left: 0; width: 100%; background-color: #2c3e50; padding: 12px 0; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-  #menu-bar button { padding: 10px 15px; font-size: 14px; cursor: pointer; background-color: #ecf0f1; border: none; border-radius: 5px; color: #2c3e50; font-weight: bold; }
+  #menu-bar button { padding: 10px 15px; font-size: 14px; cursor: pointer; background-color: #ecf0f1; border: none; border-radius: 5px; color: #2c3e50; }
 
   h1 { font-size: 24px; color: #2c3e50; margin-bottom: 20px; }
   h2 { font-size: 20px; color: #34495e; border-bottom: 2px solid #bdc3c7; padding-bottom: 5px; margin-bottom: 15px; }
@@ -18,10 +17,11 @@
   textarea { height: 150px; resize: vertical; }
 
   .btn-container { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 20px; }
-  .action-button { padding: 15px 20px; font-size: 16px; cursor: pointer; width: 100%; max-width: 350px; border-radius: 8px; border: none; background-color: #3498db; color: white; font-weight: bold; box-sizing: border-box; transition: background-color 0.2s; }
+  .action-button { padding: 15px 20px; font-size: 16px; cursor: pointer; width: 100%; max-width: 350px; border-radius: 8px; border: none; background-color: #3498db; color: white; box-sizing: border-box; transition: background-color 0.2s; }
   .action-button:active { background-color: #2980b9; }
 
   .danger-button { padding: 12px 15px; font-size: 14px; cursor: pointer; background-color: #e74c3c; color: white; border: none; border-radius: 5px; width: 100%; box-sizing: border-box; margin-top: 5px; }
+  .start-button { padding: 12px 15px; font-size: 14px; cursor: pointer; background-color: #2ecc71; color: white; border: none; border-radius: 5px; width: 100%; box-sizing: border-box; margin-top: 5px; }
 
   .choice-btn { display: block; width: 100%; margin: 12px 0; padding: 18px 15px; font-size: 18px; text-align: center; background-color: #ffffff; border: 2px solid #bdc3c7; border-radius: 10px; cursor: pointer; box-sizing: border-box; color: #2c3e50; transition: border-color 0.2s, background-color 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
   .choice-btn:active { background-color: #e8f4f8; border-color: #3498db; }
@@ -30,14 +30,18 @@
   #dashboard-area { display: block; margin-top: 10px; text-align: left; }
 
   .test-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+  .preset-card { border-left: 5px solid #2ecc71; }
   .test-card h3 { margin-top: 0; color: #2c3e50; font-size: 18px; margin-bottom: 10px; }
   .test-card p { margin: 5px 0 15px 0; color: #7f8c8d; font-size: 14px; }
 
-  #question-word { font-size: clamp(28px, 8vw, 40px); margin-bottom: 25px; font-weight: bold; color: #2c3e50; word-break: break-word; }
-  #status { margin-bottom: 15px; color: #7f8c8d; font-size: 16px; font-weight: bold; }
-  #result-message { font-size: 20px; color: #e67e22; margin-top: 25px; font-weight: bold; }
+  .request-box { background-color: #e8f4f8; border: 1px solid #bce8f1; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 30px; }
+  .request-box h3 { margin-top: 0; color: #31708f; font-size: 18px; }
+  .request-box p { color: #555; font-size: 14px; margin-bottom: 15px; }
 
-  /* 表がスマートフォン画面からはみ出さないようにスクロール枠を設定 */
+  #question-word { font-size: clamp(28px, 8vw, 40px); margin-bottom: 25px; color: #2c3e50; word-break: break-word; }
+  #status { margin-bottom: 15px; color: #7f8c8d; font-size: 16px; }
+  #result-message { font-size: 20px; color: #e67e22; margin-top: 25px; }
+
   .table-container { width: 100%; overflow-x: auto; margin: 20px 0; }
   table { width: 100%; min-width: 300px; border-collapse: collapse; text-align: left; }
   th, td { border: 1px solid #ecf0f1; padding: 12px; }
@@ -56,21 +60,31 @@
 <h1>英単語反復テスト</h1>
 
 <div id="dashboard-area">
-  <h2>進行中のテスト</h2>
+  
+  <h2>公式の単語リスト (誰でも受講可能)</h2>
+  <div id="preset-list-container"></div>
+
+  <div class="request-box">
+    <h3>新しい単語リストをリクエスト</h3>
+    <p>「こんな英単語のテストを追加してほしい！」というリクエストを受け付けています。エクセルのデータなどがあれば、以下のフォームから送ってください。</p>
+    <button class="action-button" style="width: auto; padding: 10px 20px;" onclick="openRequestForm()">リクエストフォームを開く</button>
+  </div>
+
+  <hr>
+
+  <h2>自分で作成・進行中のテスト</h2>
   <div id="test-list-container"></div>
   
-  <hr>
-  
-  <div style="text-align: center;">
-    <h2>新しいテストを作成</h2>
+  <div style="text-align: center; margin-top: 20px;">
     <div class="btn-container">
-      <button class="action-button" onclick="showSetupArea()">新規作成画面へ</button>
+      <button class="action-button" onclick="showSetupArea()">＋ 新しいテストを自作する</button>
     </div>
   </div>
 </div>
 
 <div id="setup-area">
   <h2>新しいテストの作成</h2>
+  <p style="font-size: 14px; color: #7f8c8d; text-align: left;">※ここで作成したテストは、あなたの端末にのみ保存されます。</p>
   <input type="text" id="test-title-input" placeholder="テストの名前（例：第1課の単語）">
   
   <textarea id="data-input" placeholder="エクセルから「番号」「英単語」「日本語訳」の3列をコピーして貼り付けてください。"></textarea>
@@ -118,8 +132,35 @@
   let roundCount = 1;
   let currentTestId = null;
   let currentTestTitle = "";
+  let isPresetTest = false;
   
   const STORAGE_KEY = 'vocab_tests_multi_data';
+
+  const PRESET_TESTS = [
+    {
+      id: 'preset_basic_1',
+      title: '【公式】社会学の基本単語',
+      allWords: [
+        { id: '1', en: 'society', ja: '社会' },
+        { id: '2', en: 'culture', ja: '文化' },
+        { id: '3', en: 'community', ja: '共同体' },
+        { id: '4', en: 'anthropology', ja: '人類学' },
+        { id: '5', en: 'institution', ja: '制度' },
+        { id: '6', en: 'norm', ja: '規範' }
+      ]
+    },
+    {
+      id: 'preset_basic_2',
+      title: '【公式】経済学の基本単語',
+      allWords: [
+        { id: '1', en: 'economics', ja: '経済学' },
+        { id: '2', en: 'market', ja: '市場' },
+        { id: '3', en: 'profit', ja: '利益' },
+        { id: '4', en: 'cost', ja: '費用' },
+        { id: '5', en: 'consumer', ja: '消費者' }
+      ]
+    }
+  ];
 
   window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -127,14 +168,10 @@
 
     if (shareData) {
       try {
-        // LZStringを使用して圧縮されたデータを解凍する
         let decodedText = LZString.decompressFromEncodedURIComponent(shareData);
-        
-        // もし解凍に失敗した場合は、過去の非圧縮リンクとして処理を試みる
         if (!decodedText) {
           decodedText = decodeURIComponent(escape(atob(shareData)));
         }
-
         if (decodedText) {
           document.getElementById('data-input').value = decodedText;
           window.history.replaceState({}, document.title, window.location.pathname);
@@ -143,7 +180,7 @@
           return;
         }
       } catch (e) {
-        alert('共有リンクの読み込みに失敗しました。URLが途切れていないか確認してください。');
+        alert('共有リンクの読み込みに失敗しました。');
       }
     }
 
@@ -160,7 +197,7 @@
   }
 
   function saveCurrentProgress() {
-    if (!currentTestId) return;
+    if (!currentTestId || isPresetTest) return; 
     
     let tests = loadAllTests();
     let testIndex = tests.findIndex(t => t.id === currentTestId);
@@ -200,12 +237,29 @@
     document.getElementById('summary-area').style.display = 'none';
     document.getElementById('dashboard-area').style.display = 'block';
 
+    const presetContainer = document.getElementById('preset-list-container');
+    presetContainer.innerHTML = '';
+    
+    for (let i = 0; i < PRESET_TESTS.length; i++) {
+      const p = PRESET_TESTS[i];
+      const card = document.createElement('div');
+      card.className = 'test-card preset-card';
+      card.innerHTML = `
+        <h3>${p.title}</h3>
+        <p>全単語数: ${p.allWords.length}語</p>
+        <div class="btn-container" style="margin-bottom: 0;">
+          <button class="start-button" onclick="startPresetTest('${p.id}')">このテストに挑戦する</button>
+        </div>
+      `;
+      presetContainer.appendChild(card);
+    }
+
     const container = document.getElementById('test-list-container');
     container.innerHTML = '';
     const tests = loadAllTests();
 
     if (tests.length === 0) {
-      container.innerHTML = '<p>進行中のテストはありません。</p>';
+      container.innerHTML = '<p>現在、自作して進行中のテストはありません。</p>';
       return;
     }
 
@@ -239,7 +293,25 @@
 
   function goToDashboard() {
     currentTestId = null;
+    isPresetTest = false;
     renderDashboard();
+  }
+
+  function startPresetTest(id) {
+    const presetData = PRESET_TESTS.find(p => p.id === id);
+    if (presetData) {
+      currentTestId = presetData.id;
+      currentTestTitle = presetData.title;
+      allWords = [...presetData.allWords];
+      isPresetTest = true; 
+      roundCount = 1;
+      
+      document.getElementById('dashboard-area').style.display = 'none';
+      document.getElementById('quiz-area').style.display = 'block';
+      document.getElementById('current-test-title').innerText = currentTestTitle;
+      
+      startRound(allWords);
+    }
   }
 
   function resumeTest(id) {
@@ -254,6 +326,7 @@
       mistakeList = testData.mistakeList;
       currentIndex = testData.currentIndex;
       roundCount = testData.roundCount;
+      isPresetTest = false;
       
       document.getElementById('dashboard-area').style.display = 'none';
       document.getElementById('quiz-area').style.display = 'block';
@@ -296,6 +369,7 @@
     currentTestId = 'test_' + new Date().getTime();
     currentTestTitle = inputTitle;
     roundCount = 1;
+    isPresetTest = false;
     
     document.getElementById('setup-area').style.display = 'none';
     document.getElementById('quiz-area').style.display = 'block';
@@ -371,9 +445,11 @@
 
   function endRound() {
     if (mistakeList.length === 0) {
-      let tests = loadAllTests();
-      tests = tests.filter(t => t.id !== currentTestId);
-      saveAllTests(tests);
+      if (!isPresetTest) {
+        let tests = loadAllTests();
+        tests = tests.filter(t => t.id !== currentTestId);
+        saveAllTests(tests);
+      }
       
       document.getElementById('status').innerText = '';
       document.getElementById('question-word').innerText = '全問正解クリア！';
@@ -437,9 +513,7 @@
       return;
     }
     
-    // LZStringライブラリを使用してデータを高度に圧縮する
     const compressedData = LZString.compressToEncodedURIComponent(inputText);
-    
     const currentUrl = window.location.href.split('?')[0];
     const shareUrl = currentUrl + '?data=' + compressedData;
     
@@ -447,19 +521,28 @@
     inputElement.value = shareUrl;
     inputElement.style.display = 'block';
     
-    // スマートフォンでも選択しやすくする
     inputElement.focus();
     inputElement.setSelectionRange(0, 99999);
     
-    // 自動的にクリップボードにコピーする処理
     try {
       navigator.clipboard.writeText(shareUrl).then(() => {
-        alert('共有用のリンクを作成し、クリップボードにコピーしました。\nそのままLINEやメールに貼り付けて相手に送ることができます。');
+        alert('共有用のリンクを作成し、クリップボードにコピーしました。');
       }).catch(err => {
-        alert('共有用のリンクを作成しました。枠内のURLをコピーして相手に送ることができます。');
+        alert('共有用のリンクを作成しました。枠内のURLをコピーしてください。');
       });
     } catch (err) {
-      alert('共有用のリンクを作成しました。枠内のURLをコピーして相手に送ることができます。');
+      alert('共有用のリンクを作成しました。枠内のURLをコピーしてください。');
+    }
+  }
+
+  function openRequestForm() {
+    // ここにGoogleフォームのURLを指定する
+    const formUrl = 'https://docs.google.com/forms/'; 
+    
+    if (formUrl === 'https://docs.google.com/forms/') {
+      alert('現在、フォームのURLが設定されていません。\n作成者の方は、プログラム内の「formUrl」にご自身のGoogleフォームのリンクを設定してください。');
+    } else {
+      window.open(formUrl, '_blank');
     }
   }
 </script>
