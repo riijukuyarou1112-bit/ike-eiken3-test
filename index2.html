@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>英単語反復テストツール</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+<style>
+  /* スマートフォンで押しやすいように余白や大きさを調整したデザイン */
+  body { font-family: sans-serif; margin: 0 auto; padding: 70px 15px 20px; text-align: center; color: #333; background-color: #f4f7f6; max-width: 800px; }
+  #menu-bar { position: fixed; top: 0; left: 0; width: 100%; background-color: #2c3e50; padding: 12px 0; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  #menu-bar button { padding: 10px 15px; font-size: 14px; cursor: pointer; background-color: #ecf0f1; border: none; border-radius: 5px; color: #2c3e50; font-weight: bold; }
+
+  h1 { font-size: 24px; color: #2c3e50; margin-bottom: 20px; }
+  h2 { font-size: 20px; color: #34495e; border-bottom: 2px solid #bdc3c7; padding-bottom: 5px; margin-bottom: 15px; }
+
+  input[type="text"], textarea { width: 100%; margin-bottom: 15px; padding: 12px; font-size: 16px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
+  textarea { height: 150px; resize: vertical; }
+
+  .btn-container { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 20px; }
+  .action-button { padding: 15px 20px; font-size: 16px; cursor: pointer; width: 100%; max-width: 350px; border-radius: 8px; border: none; background-color: #3498db; color: white; font-weight: bold; box-sizing: border-box; transition: background-color 0.2s; }
+  .action-button:active { background-color: #2980b9; }
+
+  .danger-button { padding: 12px 15px; font-size: 14px; cursor: pointer; background-color: #e74c3c; color: white; border: none; border-radius: 5px; width: 100%; box-sizing: border-box; margin-top: 5px; }
+
+  .choice-btn { display: block; width: 100%; margin: 12px 0; padding: 18px 15px; font-size: 18px; text-align: center; background-color: #ffffff; border: 2px solid #bdc3c7; border-radius: 10px; cursor: pointer; box-sizing: border-box; color: #2c3e50; transition: border-color 0.2s, background-color 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+  .choice-btn:active { background-color: #e8f4f8; border-color: #3498db; }
+
+  #quiz-area, #summary-area, #setup-area { display: none; margin-top: 20px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+  #dashboard-area { display: block; margin-top: 10px; text-align: left; }
+
+  .test-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+  .test-card h3 { margin-top: 0; color: #2c3e50; font-size: 18px; margin-bottom: 10px; }
+  .test-card p { margin: 5px 0 15px 0; color: #7f8c8d; font-size: 14px; }
+
+  #question-word { font-size: clamp(28px, 8vw, 40px); margin-bottom: 25px; font-weight: bold; color: #2c3e50; word-break: break-word; }
+  #status { margin-bottom: 15px; color: #7f8c8d; font-size: 16px; font-weight: bold; }
+  #result-message { font-size: 20px; color: #e67e22; margin-top: 25px; font-weight: bold; }
+
+  /* 表がスマートフォン画面からはみ出さないようにスクロール枠を設定 */
+  .table-container { width: 100%; overflow-x: auto; margin: 20px 0; }
+  table { width: 100%; min-width: 300px; border-collapse: collapse; text-align: left; }
+  th, td { border: 1px solid #ecf0f1; padding: 12px; }
+  th { background-color: #f8f9fa; color: #2c3e50; }
+  td { color: #34495e; }
+
+  hr { border: 0; height: 1px; background: #ecf0f1; margin: 30px 0; }
+</style>
+</head>
+<body>
+
+<div id="menu-bar">
+  <button onclick="goToDashboard()">ホームに戻る</button>
+</div>
+
+<h1>英単語反復テスト</h1>
+
+<div id="dashboard-area">
+  <h2>進行中のテスト</h2>
+  <div id="test-list-container"></div>
+  
+  <hr>
+  
+  <div style="text-align: center;">
+    <h2>新しいテストを作成</h2>
+    <div class="btn-container">
+      <button class="action-button" onclick="showSetupArea()">新規作成画面へ</button>
+    </div>
+  </div>
+</div>
+
+<div id="setup-area">
+  <h2>新しいテストの作成</h2>
+  <input type="text" id="test-title-input" placeholder="テストの名前（例：第1課の単語）">
+  
+  <textarea id="data-input" placeholder="エクセルから「番号」「英単語」「日本語訳」の3列をコピーして貼り付けてください。"></textarea>
+  
+  <div class="btn-container">
+    <button class="action-button" onclick="startNewTest()">この内容でテストを開始する</button>
+    <button class="action-button" style="background-color: #27ae60;" onclick="generateShareLink()">共有リンクを作成・コピー</button>
+  </div>
+  <input type="text" id="share-link-input" readonly>
+</div>
+
+<div id="quiz-area">
+  <h2 id="current-test-title"></h2>
+  <div id="status"></div>
+  <div id="question-word"></div>
+  <div id="choices-container"></div>
+  <div id="result-message"></div>
+</div>
+
+<div id="summary-area">
+  <h2>第 <span id="summary-round"></span> 周目の結果</h2>
+  <p>以下の単語を間違えました。</p>
+  <div class="table-container">
+    <table id="mistake-table">
+      <thead>
+        <tr>
+          <th>英単語</th>
+          <th>日本語訳</th>
+        </tr>
+      </thead>
+      <tbody id="mistake-table-body">
+      </tbody>
+    </table>
+  </div>
+  <div class="btn-container">
+    <button class="action-button" onclick="startNextRound()">間違えた単語で再テスト</button>
+  </div>
+</div>
+
+<script>
+  let allWords = [];
+  let currentQuizList = [];
+  let mistakeList = [];
+  let currentIndex = 0;
+  let roundCount = 1;
+  let currentTestId = null;
+  let currentTestTitle = "";
+  
+  const STORAGE_KEY = 'vocab_tests_multi_data';
+
+  window.onload = function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const shareData = urlParams.get('data');
+
+    if (shareData) {
+      try {
+        // LZStringを使用して圧縮されたデータを解凍する
+        let decodedText = LZString.decompressFromEncodedURIComponent(shareData);
+        
+        // もし解凍に失敗した場合は、過去の非圧縮リンクとして処理を試みる
+        if (!decodedText) {
+          decodedText = decodeURIComponent(escape(atob(shareData)));
+        }
+
+        if (decodedText) {
+          document.getElementById('data-input').value = decodedText;
+          window.history.replaceState({}, document.title, window.location.pathname);
+          showSetupArea();
+          alert('共有された単語データを読み込みました。テストの名前を入力して開始してください。');
+          return;
+        }
+      } catch (e) {
+        alert('共有リンクの読み込みに失敗しました。URLが途切れていないか確認してください。');
+      }
+    }
+
+    renderDashboard();
+  };
+
+  function loadAllTests() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  }
+
+  function saveAllTests(testsArray) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(testsArray));
+  }
+
+  function saveCurrentProgress() {
+    if (!currentTestId) return;
+    
+    let tests = loadAllTests();
+    let testIndex = tests.findIndex(t => t.id === currentTestId);
+    
+    const testState = {
+      id: currentTestId,
+      title: currentTestTitle,
+      allWords: allWords,
+      currentQuizList: currentQuizList,
+      mistakeList: mistakeList,
+      currentIndex: currentIndex,
+      roundCount: roundCount,
+      lastUpdated: new Date().getTime()
+    };
+
+    if (testIndex >= 0) {
+      tests[testIndex] = testState;
+    } else {
+      tests.push(testState);
+    }
+    
+    saveAllTests(tests);
+  }
+
+  function deleteTest(id) {
+    if (confirm('このテストのデータを削除してもよろしいですか？')) {
+      let tests = loadAllTests();
+      tests = tests.filter(t => t.id !== id);
+      saveAllTests(tests);
+      renderDashboard();
+    }
+  }
+
+  function renderDashboard() {
+    document.getElementById('setup-area').style.display = 'none';
+    document.getElementById('quiz-area').style.display = 'none';
+    document.getElementById('summary-area').style.display = 'none';
+    document.getElementById('dashboard-area').style.display = 'block';
+
+    const container = document.getElementById('test-list-container');
+    container.innerHTML = '';
+    const tests = loadAllTests();
+
+    if (tests.length === 0) {
+      container.innerHTML = '<p>進行中のテストはありません。</p>';
+      return;
+    }
+
+    tests.sort((a, b) => b.lastUpdated - a.lastUpdated);
+
+    for (let i = 0; i < tests.length; i++) {
+      const t = tests[i];
+      const card = document.createElement('div');
+      card.className = 'test-card';
+      
+      const titleStr = t.title || '無題のテスト';
+      const progressStr = `第 ${t.roundCount} 周目 : ${t.currentIndex} / ${t.currentQuizList.length} 問 完了`;
+      
+      card.innerHTML = `
+        <h3>${titleStr}</h3>
+        <p>全単語数: ${t.allWords.length}語</p>
+        <p>現在の進捗: ${progressStr}</p>
+        <div class="btn-container" style="margin-bottom: 0;">
+          <button class="action-button" onclick="resumeTest('${t.id}')">続きから再開する</button>
+          <button class="danger-button" onclick="deleteTest('${t.id}')">削除する</button>
+        </div>
+      `;
+      container.appendChild(card);
+    }
+  }
+
+  function showSetupArea() {
+    document.getElementById('dashboard-area').style.display = 'none';
+    document.getElementById('setup-area').style.display = 'block';
+  }
+
+  function goToDashboard() {
+    currentTestId = null;
+    renderDashboard();
+  }
+
+  function resumeTest(id) {
+    const tests = loadAllTests();
+    const testData = tests.find(t => t.id === id);
+    
+    if (testData) {
+      currentTestId = testData.id;
+      currentTestTitle = testData.title;
+      allWords = testData.allWords;
+      currentQuizList = testData.currentQuizList;
+      mistakeList = testData.mistakeList;
+      currentIndex = testData.currentIndex;
+      roundCount = testData.roundCount;
+      
+      document.getElementById('dashboard-area').style.display = 'none';
+      document.getElementById('quiz-area').style.display = 'block';
+      document.getElementById('current-test-title').innerText = currentTestTitle;
+      
+      showQuestion();
+    }
+  }
+
+  function startNewTest() {
+    const inputText = document.getElementById('data-input').value.trim();
+    if (!inputText) {
+      alert('データを入力してください。');
+      return;
+    }
+
+    allWords = [];
+    const lines = inputText.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const parts = lines[i].split('\t');
+      if (parts.length >= 3) {
+        allWords.push({
+          id: parts[0].trim(),
+          en: parts[1].trim(),
+          ja: parts[2].trim()
+        });
+      }
+    }
+
+    if (allWords.length < 4) {
+      alert('4択を作るため、最低でも4つ以上の単語データを入力してください。');
+      return;
+    }
+
+    let inputTitle = document.getElementById('test-title-input').value.trim();
+    if (!inputTitle) {
+      inputTitle = allWords[0].en + ' などのテスト';
+    }
+
+    currentTestId = 'test_' + new Date().getTime();
+    currentTestTitle = inputTitle;
+    roundCount = 1;
+    
+    document.getElementById('setup-area').style.display = 'none';
+    document.getElementById('quiz-area').style.display = 'block';
+    document.getElementById('current-test-title').innerText = currentTestTitle;
+    
+    startRound(allWords);
+  }
+
+  function startRound(listToTest) {
+    currentQuizList = [...listToTest];
+    shuffleArray(currentQuizList);
+    mistakeList = [];
+    currentIndex = 0;
+    
+    saveCurrentProgress();
+    
+    document.getElementById('result-message').innerText = '';
+    document.getElementById('summary-area').style.display = 'none';
+    document.getElementById('quiz-area').style.display = 'block';
+    
+    showQuestion();
+  }
+
+  function showQuestion() {
+    if (currentIndex >= currentQuizList.length) {
+      endRound();
+      return;
+    }
+
+    const currentWord = currentQuizList[currentIndex];
+    document.getElementById('status').innerText = `第 ${roundCount} 周目 : ${currentIndex + 1} / ${currentQuizList.length} 問`;
+    document.getElementById('question-word').innerText = currentWord.en;
+
+    const choicesContainer = document.getElementById('choices-container');
+    choicesContainer.innerHTML = '';
+
+    const choices = generateChoices(currentWord);
+
+    for (let i = 0; i < choices.length; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.innerText = choices[i].ja;
+      btn.onclick = function() { checkAnswer(choices[i].ja, currentWord.ja, currentWord); };
+      choicesContainer.appendChild(btn);
+    }
+  }
+
+  function generateChoices(correctWord) {
+    const choices = [correctWord];
+    const otherWords = allWords.filter(word => word.en !== correctWord.en);
+    shuffleArray(otherWords);
+
+    for (let i = 0; i < 3; i++) {
+      if (otherWords[i]) {
+        choices.push(otherWords[i]);
+      }
+    }
+    
+    shuffleArray(choices);
+    return choices;
+  }
+
+  function checkAnswer(selectedJa, correctJa, currentWord) {
+    if (selectedJa !== correctJa) {
+      mistakeList.push(currentWord);
+      alert(`不正解です。\n正解は「${correctJa}」です。`);
+    }
+
+    currentIndex++;
+    saveCurrentProgress();
+    showQuestion();
+  }
+
+  function endRound() {
+    if (mistakeList.length === 0) {
+      let tests = loadAllTests();
+      tests = tests.filter(t => t.id !== currentTestId);
+      saveAllTests(tests);
+      
+      document.getElementById('status').innerText = '';
+      document.getElementById('question-word').innerText = '全問正解クリア！';
+      document.getElementById('choices-container').innerHTML = '';
+      document.getElementById('result-message').innerText = 'お疲れ様でした。すべての単語を覚えました。';
+      
+      const backBtn = document.createElement('button');
+      backBtn.className = 'action-button';
+      backBtn.innerText = '一覧画面に戻る';
+      backBtn.onclick = function() { goToDashboard(); };
+      
+      const container = document.createElement('div');
+      container.className = 'btn-container';
+      container.appendChild(backBtn);
+      document.getElementById('quiz-area').appendChild(container);
+      
+      currentTestId = null;
+    } else {
+      showMistakeSummary();
+    }
+  }
+
+  function showMistakeSummary() {
+    document.getElementById('quiz-area').style.display = 'none';
+    document.getElementById('summary-area').style.display = 'block';
+    document.getElementById('summary-round').innerText = roundCount;
+    
+    const tbody = document.getElementById('mistake-table-body');
+    tbody.innerHTML = '';
+    
+    for (let i = 0; i < mistakeList.length; i++) {
+      const tr = document.createElement('tr');
+      const tdEn = document.createElement('td');
+      tdEn.innerText = mistakeList[i].en;
+      const tdJa = document.createElement('td');
+      tdJa.innerText = mistakeList[i].ja;
+      tr.appendChild(tdEn);
+      tr.appendChild(tdJa);
+      tbody.appendChild(tr);
+    }
+  }
+
+  function startNextRound() {
+    roundCount++;
+    startRound(mistakeList);
+  }
+
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = array[i];
+      array[i] = array[j];
+      array[j] = temp;
+    }
+  }
+
+  function generateShareLink() {
+    const inputText = document.getElementById('data-input').value.trim();
+    if (!inputText) {
+      alert('データが入力されていません。');
+      return;
+    }
+    
+    // LZStringライブラリを使用してデータを高度に圧縮する
+    const compressedData = LZString.compressToEncodedURIComponent(inputText);
+    
+    const currentUrl = window.location.href.split('?')[0];
+    const shareUrl = currentUrl + '?data=' + compressedData;
+    
+    const inputElement = document.getElementById('share-link-input');
+    inputElement.value = shareUrl;
+    inputElement.style.display = 'block';
+    
+    // スマートフォンでも選択しやすくする
+    inputElement.focus();
+    inputElement.setSelectionRange(0, 99999);
+    
+    // 自動的にクリップボードにコピーする処理
+    try {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        alert('共有用のリンクを作成し、クリップボードにコピーしました。\nそのままLINEやメールに貼り付けて相手に送ることができます。');
+      }).catch(err => {
+        alert('共有用のリンクを作成しました。枠内のURLをコピーして相手に送ることができます。');
+      });
+    } catch (err) {
+      alert('共有用のリンクを作成しました。枠内のURLをコピーして相手に送ることができます。');
+    }
+  }
+</script>
+
+</body>
+</html>
