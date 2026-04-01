@@ -2,3251 +2,600 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>英単語反復テストツール</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <style>
-  body { font-family: sans-serif; margin: 0 auto; padding: 70px 15px 20px; text-align: center; color: #333; background-color: #f4f7f6; max-width: 800px; }
-  #menu-bar { position: fixed; top: 0; left: 0; width: 100%; background-color: #2c3e50; padding: 12px 0; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-  #menu-bar button { padding: 10px 15px; font-size: 14px; cursor: pointer; background-color: #ecf0f1; border: none; border-radius: 5px; color: #2c3e50; }
+  :root {
+    --primary-color: #3498db;
+    --primary-hover: #2980b9;
+    --bg-color: #f4f7f6;
+    --card-bg: #ffffff;
+    --text-main: #333333;
+    --text-sub: #7f8c8d;
+    --danger: #e74c3c;
+    --success: #2ecc71;
+    --border-color: #e0e0e0;
+  }
 
-  h1 { font-size: 24px; color: #2c3e50; margin-bottom: 20px; }
-  h2 { font-size: 20px; color: #34495e; border-bottom: 2px solid #bdc3c7; padding-bottom: 5px; margin-bottom: 15px; }
+  body { 
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; 
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    max-width: 600px; 
+    margin: 0 auto; 
+    padding: 20px; 
+    text-align: center; 
+    box-sizing: border-box;
+  }
 
-  input[type="text"], textarea { width: 100%; margin-bottom: 15px; padding: 12px; font-size: 16px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
-  textarea { height: 150px; resize: vertical; }
+  h1, h2, h3 { color: var(--text-main); }
+  
+  /* フォーム要素 */
+  input[type="text"], textarea { 
+    width: 100%; 
+    margin-bottom: 15px; 
+    padding: 12px; 
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-sizing: border-box; 
+    font-size: 16px;
+  }
+  
+  textarea { 
+    height: 150px; 
+    resize: vertical;
+  }
 
-  .btn-container { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 20px; }
-  .action-button { padding: 15px 20px; font-size: 16px; cursor: pointer; width: 100%; max-width: 350px; border-radius: 8px; border: none; background-color: #3498db; color: white; box-sizing: border-box; transition: background-color 0.2s; }
-  .action-button:active { background-color: #2980b9; }
+  /* ボタン共通スタイル */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 16px 20px; 
+    font-size: 18px; 
+    font-weight: bold;
+    border-radius: 12px;
+    cursor: pointer; 
+    box-sizing: border-box;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+    border: none;
+  }
 
-  .danger-button { padding: 12px 15px; font-size: 14px; cursor: pointer; background-color: #e74c3c; color: white; border: none; border-radius: 5px; width: 100%; box-sizing: border-box; margin-top: 5px; }
-  .start-button { padding: 12px 15px; font-size: 14px; cursor: pointer; background-color: #2ecc71; color: white; border: none; border-radius: 5px; width: 100%; box-sizing: border-box; margin-top: 5px; }
+  .btn-primary { 
+    background-color: var(--primary-color);
+    color: white;
+  }
+  .btn-primary:active { background-color: var(--primary-hover); }
 
-  .choice-btn { display: block; width: 100%; margin: 12px 0; padding: 18px 15px; font-size: 18px; text-align: center; background-color: #ffffff; border: 2px solid #bdc3c7; border-radius: 10px; cursor: pointer; box-sizing: border-box; color: #2c3e50; transition: border-color 0.2s, background-color 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-  .choice-btn:active { background-color: #e8f4f8; border-color: #3498db; }
+  .btn-outline {
+    background-color: white;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+  }
+  .btn-outline:active { background-color: #f0f8ff; }
 
-  #quiz-area, #summary-area, #setup-area { display: none; margin-top: 20px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-  #dashboard-area { display: block; margin-top: 10px; text-align: left; }
+  .btn-danger {
+    background-color: white;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    padding: 10px;
+    font-size: 14px;
+    margin-top: 30px;
+  }
 
-  .test-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-  .preset-card { border-left: 5px solid #2ecc71; }
-  .test-card h3 { margin-top: 0; color: #2c3e50; font-size: 18px; margin-bottom: 10px; }
-  .test-card p { margin: 5px 0 15px 0; color: #7f8c8d; font-size: 14px; }
+  .btn-secondary {
+    background-color: #95a5a6;
+    color: white;
+  }
 
-  .request-box { background-color: #e8f4f8; border: 1px solid #bce8f1; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 30px; }
-  .request-box h3 { margin-top: 0; color: #31708f; font-size: 18px; }
-  .request-box p { color: #555; font-size: 14px; margin-bottom: 15px; }
+  /* 選択肢ボタン */
+  .choice-btn { 
+    background-color: white; 
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color); 
+  }
+  .choice-btn:active {
+    background-color: var(--primary-color);
+    color: white;
+  }
+  .choice-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 
-  #question-word { font-size: clamp(28px, 8vw, 40px); margin-bottom: 25px; color: #2c3e50; word-break: break-word; }
-  #status { margin-bottom: 15px; color: #7f8c8d; font-size: 16px; }
-  #result-message { font-size: 20px; color: #e67e22; margin-top: 25px; }
+  /* 画面切り替え用 */
+  .view-area { display: none; }
+  .active-view { display: block; animation: fadeIn 0.3s ease-in-out; }
 
-  .table-container { width: 100%; overflow-x: auto; margin: 20px 0; }
-  table { width: 100%; min-width: 300px; border-collapse: collapse; text-align: left; }
-  th, td { border: 1px solid #ecf0f1; padding: 12px; }
-  th { background-color: #f8f9fa; color: #2c3e50; }
-  td { color: #34495e; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
-  hr { border: 0; height: 1px; background: #ecf0f1; margin: 30px 0; }
+  /* カードデザイン */
+  .card { 
+    border-radius: 12px; 
+    padding: 20px; 
+    margin-bottom: 20px; 
+    background-color: var(--card-bg); 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  }
+
+  /* ホーム画面のリスト */
+  .word-list {
+    text-align: left;
+    margin-bottom: 25px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: white;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .word-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 16px;
+  }
+  .word-item:last-child { border-bottom: none; }
+  
+  .word-en { font-weight: bold; }
+  .word-ja { color: var(--text-sub); }
+
+  /* 間違えた回数による背景色（ハイライト） */
+  .bg-err-0 { background-color: #ffffff; } 
+  .bg-err-1 { background-color: #e3f2fd; } 
+  .bg-err-2 { background-color: #e8f5e9; } 
+  .bg-err-3 { background-color: #fff9c4; } 
+  .bg-err-4 { background-color: #ffebee; } 
+
+  /* フォルダとリストボタンのデザイン */
+  .folder-box {
+    background-color: white;
+    border-left: 5px solid var(--primary-color);
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    text-align: left;
+  }
+  .list-btn {
+    margin-top: 10px;
+    font-size: 16px;
+    padding: 12px;
+  }
+
+  /* クイズ画面 */
+  #status-bar { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    color: var(--text-sub); 
+    margin-bottom: 20px; 
+    font-weight: bold; 
+  }
+  .interrupt-text { color: var(--primary-color); cursor: pointer; text-decoration: underline; font-size: 14px;}
+  #question-word { font-size: 36px; font-weight: bold; color: var(--text-main); margin: 20px 0; }
+  #result-message { font-size: 20px; font-weight: bold; margin-top: 15px; min-height: 30px; }
+
+  /* 結果画面 */
+  .result-score { font-size: 48px; color: var(--primary-color); font-weight: bold; margin: 10px 0; }
 </style>
 </head>
 <body>
 
-<div id="menu-bar">
-  <button onclick="goToDashboard()">ホームに戻る</button>
+<div id="setup-view" class="view-area">
+  <h2>新しいフォルダの作成</h2>
+  <p style="text-align: left; color: #7f8c8d; font-size: 14px;">フォルダ名を入力し、エクセルから「英単語」と「日本語訳」を含むデータを貼り付けること。</p>
+  <input type="text" id="folder-name-input" placeholder="フォルダ名（例：英検三級）">
+  <textarea id="data-input">
+society	社会
+philosophy	哲学
+economics	経済学
+anthropology	人類学
+community	共同体
+culture	文化</textarea>
+  <button class="btn btn-primary" onclick="importData()">リストを登録して開始</button>
+  <button class="btn btn-outline" id="btn-cancel-setup" onclick="returnToHome()" style="display:none;">キャンセル</button>
 </div>
 
-<h1>英単語反復テスト</h1>
+<div id="home-view" class="view-area">
+  <h1>フォルダ一覧</h1>
+  <div id="folders-container"></div>
+  <button class="btn btn-primary" onclick="showSetupView()">新しいフォルダを追加</button>
+  <button class="btn btn-danger" onclick="resetAllData()">データをすべて消去して作り直す</button>
+</div>
 
-<div id="dashboard-area">
-  
-  <h2>公式の単語リスト (誰でも受講可能)</h2>
-  <div id="preset-list-container"></div>
+<div id="list-detail-view" class="view-area">
+  <h2 id="detail-title">リスト詳細</h2>
+  <p style="font-size: 14px; color: #7f8c8d;">※間違えた単語は色が変わる</p>
+  <div id="word-list-container" class="word-list"></div>
+  <div id="action-buttons"></div>
+  <button class="btn btn-outline" onclick="returnToHome()">フォルダ一覧に戻る</button>
+</div>
 
-  <div class="request-box">
-    <h3>新しい単語リストをリクエスト</h3>
-    <p>「こんな英単語のテストを追加してほしい！」というリクエストを受け付けています。エクセルのデータなどがあれば、以下のフォームから送ってください。</p>
-    <button class="action-button" style="width: auto; padding: 10px 20px;" onclick="openRequestForm()">リクエストフォームを開く</button>
-  </div>
-
-  <hr>
-
-  <h2>自分で作成・進行中のテスト</h2>
-  <div id="test-list-container"></div>
-  
-  <div style="text-align: center; margin-top: 20px;">
-    <div class="btn-container">
-      <button class="action-button" onclick="showSetupArea()">＋ 新しいテストを自作する</button>
+<div id="quiz-view" class="view-area">
+  <div class="card" style="padding: 20px;">
+    <div id="status-bar">
+      <span id="progress-text">問題 1 / 10</span>
+      <span class="interrupt-text" onclick="interruptQuiz()">中断して戻る</span>
     </div>
+    <div id="question-word"></div>
   </div>
-</div>
-
-<div id="setup-area">
-  <h2>新しいテストの作成</h2>
-  <p style="font-size: 14px; color: #7f8c8d; text-align: left;">※ここで作成したテストは、あなたの端末にのみ保存されます。</p>
-  <input type="text" id="test-title-input" placeholder="テストの名前（例：第1課の単語）">
-  
-  <textarea id="data-input" placeholder="エクセルから「番号」「英単語」「日本語訳」の3列をコピーして貼り付けてください。"></textarea>
-  
-  <div class="btn-container">
-    <button class="action-button" onclick="startNewTest()">この内容でテストを開始する</button>
-    <button class="action-button" style="background-color: #27ae60;" onclick="generateShareLink()">共有リンクを作成・コピー</button>
-  </div>
-  <input type="text" id="share-link-input" readonly>
-</div>
-
-<div id="quiz-area">
-  <h2 id="current-test-title"></h2>
-  <div id="status"></div>
-  <div id="question-word"></div>
   <div id="choices-container"></div>
   <div id="result-message"></div>
 </div>
 
-<div id="summary-area">
-  <h2>第 <span id="summary-round"></span> 周目の結果</h2>
-  <p>以下の単語を間違えました。</p>
-  <div class="table-container">
-    <table id="mistake-table">
-      <thead>
-        <tr>
-          <th>英単語</th>
-          <th>日本語訳</th>
-        </tr>
-      </thead>
-      <tbody id="mistake-table-body">
-      </tbody>
-    </table>
+<div id="result-view" class="view-area">
+  <h2>テスト完了</h2>
+  <div class="card">
+    <p>正解数</p>
+    <div class="result-score" id="final-score">0 / 0</div>
   </div>
-  <div class="btn-container">
-    <button class="action-button" onclick="startNextRound()">間違えた単語で再テスト</button>
-  </div>
+  
+  <div id="wrong-words-summary" style="margin-bottom: 20px; text-align: left;"></div>
+
+  <button class="btn btn-primary" onclick="returnToHome()">フォルダ一覧に戻る</button>
 </div>
 
 <script>
-  let allWords = [];
-  let currentQuizList = [];
-  let mistakeList = [];
-  let currentIndex = 0;
-  let roundCount = 1;
-  let currentTestId = null;
-  let currentTestTitle = "";
-  let isPresetTest = false;
-  
-  const STORAGE_KEY = 'vocab_tests_multi_data';
+  const STORAGE_KEY = 'vocab_app_data';
 
-  const PRESET_FOLDERS = [
-  {
-    folderName: "英検3級 単語リスト",
-    words: [
-      { id: "1", en: "famous", ja: "有名な(形容詞)" },
-      { id: "2", en: "weekend", ja: "週末に(名詞)" },
-      { id: "3", en: "soon", ja: "まもなく，すぐに(副詞)" },
-      { id: "4", en: "still", ja: "まだ(副詞)" },
-      { id: "5", en: "popular", ja: "人気の(形容詞)" },
-      { id: "6", en: "practice", ja: "練習する(動詞)" },
-      { id: "7", en: "during", ja: "～の間(前置詞)" },
-      { id: "8", en: "enjoy", ja: "楽しむ(動詞)" },
-      { id: "9", en: "favorite", ja: "お気に入りの(形容詞)" },
-      { id: "10", en: "sell", ja: "を売る(動詞)" },
-      { id: "11", en: "bring", ja: "持って来る(動詞)" },
-      { id: "12", en: "expensive", ja: "高価な，費用のかかる(形容詞)" },
-      { id: "13", en: "join", ja: "参加する(動詞)" },
-      { id: "14", en: "so", ja: "とても(副詞)" },
-      { id: "15", en: "leave", ja: "去る，残す，置いて行く(動詞)" },
-      { id: "16", en: "enough", ja: "十分な(形容詞)" },
-      { id: "17", en: "happen", ja: "起こる(動詞)" },
-      { id: "18", en: "different", ja: "違った(形容詞)" },
-      { id: "19", en: "invite", ja: "招待する(動詞)" },
-      { id: "20", en: "how about", ja: "はどうですか？(熟語)" },
-      { id: "21", en: "plan", ja: "計画する(動詞)" },
-      { id: "22", en: "ask", ja: "たずねる(動詞)" },
-      { id: "23", en: "until", ja: "まで，までは(前置詞)" },
-      { id: "24", en: "almost", ja: "ほとんど(副詞)" },
-      { id: "25", en: "sick", ja: "病気の(形容詞)" },
-      { id: "26", en: "excited", ja: "興奮した(形容詞)" },
-      { id: "27", en: "science", ja: "科学(名詞)" },
-      { id: "28", en: "library", ja: "図書館(名詞)" },
-      { id: "29", en: "visit", ja: "訪問する(動詞)" },
-      { id: "30", en: "cheap", ja: "安い(形容詞)" },
-      { id: "31", en: "then", ja: "そのとき(副詞)" },
-      { id: "32", en: "show", ja: "見せる(動詞)" },
-      { id: "33", en: "instead", ja: "そのかわりに(副詞)" },
-      { id: "34", en: "what about", ja: "～はどうですか(熟語)" },
-      { id: "35", en: "garden", ja: "庭(名詞)" },
-      { id: "36", en: "look for", ja: "を探す(熟語)" },
-      { id: "37", en: "meet", ja: "会う(動詞)" },
-      { id: "38", en: "because of", ja: "～が理由で(熟語)" },
-      { id: "39", en: "by", ja: "のそばに、によって(前置詞)" },
-      { id: "40", en: "stay", ja: "滞在する(動詞)" },
-      { id: "41", en: "hope", ja: "望む(動詞)" },
-      { id: "42", en: "delicious", ja: "おいしい(形容詞)" },
-      { id: "43", en: "together", ja: "一緒に(副詞)" },
-      { id: "44", en: "decide", ja: "決心する(動詞)" },
-      { id: "45", en: "later", ja: "後に(副詞)" },
-      { id: "46", en: "festival", ja: "祭り(名詞)" },
-      { id: "47", en: "vacation", ja: "休暇(名詞)" },
-      { id: "48", en: "own", ja: "自分の(形容詞)" },
-      { id: "49", en: "noon", ja: "正午(名詞)" },
-      { id: "50", en: "important", ja: "重要な(形容詞)" },
-      { id: "51", en: "remember", ja: "思い出す(動詞)" },
-      { id: "52", en: "nervous", ja: "あがっている(形容詞)" },
-      { id: "53", en: "look", ja: "見る(動詞)" },
-      { id: "54", en: "weather", ja: "天気(名詞)" },
-      { id: "55", en: "in front of", ja: "の前に(熟語)" },
-      { id: "56", en: "have to", ja: "～しなければならない(熟語)" },
-      { id: "57", en: "grow", ja: "育てる(動詞)" },
-      { id: "58", en: "carry", ja: "運ぶ(動詞)" },
-      { id: "59", en: "heavy", ja: "重い(形容詞)" },
-      { id: "60", en: "need to", ja: "～する必要がある(熟語)" },
-      { id: "61", en: "a lot of", ja: "たくさんの(熟語)" },
-      { id: "62", en: "sure", ja: "確信して(形容詞)" },
-      { id: "63", en: "arrive", ja: "到着する(動詞)" },
-      { id: "64", en: "over there", ja: "あそこに(熟語)" },
-      { id: "65", en: "borrow", ja: "借りる(動詞)" },
-      { id: "66", en: "place", ja: "場所(名詞)" },
-      { id: "67", en: "break", ja: "壊れる，破る(動詞)" },
-      { id: "68", en: "June", ja: "6月(名詞)" },
-      { id: "69", en: "usually", ja: "普通は(副詞)" },
-      { id: "70", en: "win", ja: "勝つ(動詞)" },
-      { id: "71", en: "healthy", ja: "健康な(形容詞)" },
-      { id: "72", en: "sign", ja: "標識(名詞)" },
-      { id: "73", en: "one day", ja: "ある日(熟語)" },
-      { id: "74", en: "maybe", ja: "たぶん(副詞)" },
-      { id: "75", en: "how often", ja: "どのぐらいの頻度(熟語)" },
-      { id: "76", en: "hurt", ja: "を傷つける(動詞)" },
-      { id: "77", en: "dictionary", ja: "辞書(名詞)" },
-      { id: "78", en: "put", ja: "置く(動詞)" },
-      { id: "79", en: "try on", ja: "試着する(熟語)" },
-      { id: "80", en: "difficult", ja: "難しい(形容詞)" },
-      { id: "81", en: "be interested in", ja: "に興味がある(熟語)" },
-      { id: "82", en: "when", ja: "～するとき(接続詞)" },
-      { id: "83", en: "beside", ja: "横に(前置詞)" },
-      { id: "84", en: "strong", ja: "強い(形容詞)" },
-      { id: "85", en: "believe", ja: "信じる(動詞)" },
-      { id: "86", en: "sad", ja: "悲しい(形容詞)" },
-      { id: "87", en: "should", ja: "～すべきである(助動詞)" },
-      { id: "88", en: "clock", ja: "置き時計(名詞)" },
-      { id: "89", en: "million", ja: "100万(名詞)" },
-      { id: "90", en: "bright", ja: "明るい(形容詞)" },
-      { id: "91", en: "again", ja: "もう一度、再び、また(副詞)" },
-      { id: "92", en: "hear", ja: "聞く(動詞)" },
-      { id: "93", en: "look forward to", ja: "～を楽しみにする(熟語)" },
-      { id: "94", en: "cook", ja: "料理する(動詞)" },
-      { id: "95", en: "drive", ja: "運転する(動詞)" },
-      { id: "96", en: "face", ja: "顔(名詞)" },
-      { id: "97", en: "get", ja: "得る(動詞)" },
-      { id: "98", en: "find", ja: "見つける(動詞)" },
-      { id: "99", en: "lake", ja: "湖(名詞)" },
-      { id: "100", en: "really", ja: "本当に(副詞)" },
-      { id: "101", en: "sometimes", ja: "時々(副詞)" },
-      { id: "102", en: "exciting", ja: "興奮させる(形容詞)" },
-      { id: "103", en: "write", ja: "書く、手紙を書く(動詞)" },
-      { id: "104", en: "make", ja: "作る、～を～にする(動詞)" },
-      { id: "105", en: "tall", ja: "高い(形容詞)" },
-      { id: "106", en: "guess", ja: "推測する(動詞)" },
-      { id: "107", en: "between A and B", ja: "AとBの間(熟語)" },
-      { id: "108", en: "July", ja: "7月(名詞)" },
-      { id: "109", en: "information", ja: "情報(名詞)" },
-      { id: "110", en: "pay", ja: "支払う(動詞)" },
-      { id: "111", en: "season", ja: "季節(名詞)" },
-      { id: "112", en: "already", ja: "すでに、もう(副詞)" },
-      { id: "113", en: "sold out", ja: "売り切れ(熟語)" },
-      { id: "114", en: "take care of", ja: "の面倒を見る(熟語)" },
-      { id: "115", en: "March", ja: "3月(名詞)" },
-      { id: "116", en: "wear", ja: "着る(動詞)" },
-      { id: "117", en: "university", ja: "大学(名詞)" },
-      { id: "118", en: "math", ja: "数学(名詞)" },
-      { id: "119", en: "people", ja: "人々(名詞)" },
-      { id: "120", en: "lots of", ja: "たくさんの(熟語)" },
-      { id: "121", en: "care", ja: "注意する、世話する(動詞)" },
-      { id: "122", en: "invent", ja: "を発明する(動詞)" },
-      { id: "123", en: "large", ja: "大きい、広い(形容詞)" },
-      { id: "124", en: "get married", ja: "結婚する(熟語)" },
-      { id: "125", en: "city hall", ja: "市庁舎(名詞)" },
-      { id: "126", en: "bank", ja: "銀行(名詞)" },
-      { id: "127", en: "prize", ja: "賞(名詞)" },
-      { id: "128", en: "save", ja: "節約する(動詞)" },
-      { id: "129", en: "on weekends", ja: "週末に(熟語)" },
-      { id: "130", en: "clothes", ja: "服(名詞)" },
-      { id: "131", en: "museum", ja: "博物館(名詞)" },
-      { id: "132", en: "be born", ja: "生まれる(熟語)" },
-      { id: "133", en: "choose", ja: "選ぶ(動詞)" },
-      { id: "134", en: "cousin", ja: "いとこ(名詞)" },
-      { id: "135", en: "everywhere", ja: "どこでも(副詞)" },
-      { id: "136", en: "plant", ja: "植物(名詞)" },
-      { id: "137", en: "try", ja: "試す(動詞)" },
-      { id: "138", en: "if", ja: "もし～なら(接続詞)" },
-      { id: "139", en: "another", ja: "もう一つの(形容詞)" },
-      { id: "140", en: "take part in", ja: "に参加する(熟語)" },
-      { id: "141", en: "meaning", ja: "意味(名詞)" },
-      { id: "142", en: "hit", ja: "打つ(動詞)" },
-      { id: "143", en: "angry", ja: "怒った、腹を立てた(形容詞)" },
-      { id: "144", en: "map", ja: "地図(名詞)" },
-      { id: "145", en: "be proud of", ja: "を誇りに思う(熟語)" },
-      { id: "146", en: "dirty", ja: "汚い(形容詞)" },
-      { id: "147", en: "each other", ja: "お互いに(熟語)" },
-      { id: "148", en: "promise", ja: "約束(名詞)" },
-      { id: "149", en: "problem", ja: "問題(名詞)" },
-      { id: "150", en: "who", ja: "だれ(代名詞)" },
-      { id: "151", en: "what", ja: "何(代名詞)" },
-      { id: "152", en: "how", ja: "どのぐらい(副詞)" },
-      { id: "153", en: "customer", ja: "顧客(名詞)" },
-      { id: "154", en: "once", ja: "かつて(副詞)" },
-      { id: "155", en: "twice", ja: "2回(副詞)" },
-      { id: "156", en: "salt", ja: "塩(名詞)" },
-      { id: "157", en: "hurry up", ja: "急ぐ(熟語)" },
-      { id: "158", en: "notice", ja: "気づく(動詞)" },
-      { id: "159", en: "collect", ja: "集める(動詞)" },
-      { id: "160", en: "accident", ja: "事故(名詞)" },
-      { id: "161", en: "more than", ja: "より多い(熟語)" },
-      { id: "162", en: "cost", ja: "費用(名詞)" },
-      { id: "163", en: "star", ja: "星、スター(名詞)" },
-      { id: "164", en: "keep", ja: "を保つ(動詞)" },
-      { id: "165", en: "late", ja: "遅い(形容詞)" },
-      { id: "166", en: "cold", ja: "冷たい(形容詞)" },
-      { id: "167", en: "food", ja: "食べ物(名詞)" },
-      { id: "168", en: "order", ja: "注文する(動詞)" },
-      { id: "169", en: "clean", ja: "きれいな(形容詞)" },
-      { id: "170", en: "right away", ja: "直ちに、すぐに(熟語)" },
-      { id: "171", en: "trip", ja: "旅行(名詞)" },
-      { id: "172", en: "far from", ja: "～から遠い(熟語)" },
-      { id: "173", en: "zoo", ja: "動物園(名詞)" },
-      { id: "174", en: "wash", ja: "洗う(動詞)" },
-      { id: "175", en: "pick up", ja: "拾う(熟語)" },
-      { id: "176", en: "fun", ja: "楽しみ(名詞)" },
-      { id: "177", en: "grandfather", ja: "祖父(名詞)" },
-      { id: "178", en: "travel", ja: "旅行(動詞)" },
-      { id: "179", en: "other", ja: "ほかの(形容詞)" },
-      { id: "180", en: "attention", ja: "注意(名詞)" },
-      { id: "181", en: "husband", ja: "夫(名詞)" },
-      { id: "182", en: "international", ja: "国際的な(形容詞)" },
-      { id: "183", en: "interesting", ja: "面白い(形容詞)" },
-      { id: "184", en: "often", ja: "しばしば、よく(副詞)" },
-      { id: "185", en: "boring", ja: "つまらない(形容詞)" },
-      { id: "186", en: "glad", ja: "うれしい(形容詞)" },
-      { id: "187", en: "below", ja: "下に、下記の(副詞)" },
-      { id: "188", en: "turn", ja: "曲がる、回る、変化する(動詞)" },
-      { id: "189", en: "wide", ja: "幅の広い(形容詞)" },
-      { id: "190", en: "loud", ja: "騒がしい(形容詞)" },
-      { id: "191", en: "amazing", ja: "驚くべき(形容詞)" },
-      { id: "192", en: "price", ja: "値段(名詞)" },
-      { id: "193", en: "each", ja: "各々の(形容詞)" },
-      { id: "194", en: "talk about", ja: "について話す(熟語)" },
-      { id: "195", en: "right", ja: "右に(副詞)" },
-      { id: "196", en: "anyway", ja: "ともかく(副詞)" },
-      { id: "197", en: "worry", ja: "心配させる(動詞)" },
-      { id: "198", en: "hard", ja: "一生懸命に(副詞)" },
-      { id: "199", en: "award", ja: "賞(名詞)" },
-      { id: "200", en: "ocean", ja: "大洋、海(名詞)" },
-      { id: "201", en: "draw", ja: "描く(動詞)" },
-      { id: "202", en: "luck", ja: "運(名詞)" },
-      { id: "203", en: "bakery", ja: "パン屋(名詞)" },
-      { id: "204", en: "busy", ja: "忙しい(形容詞)" },
-      { id: "205", en: "tonight", ja: "今夜は(副詞)" },
-      { id: "206", en: "cloudy", ja: "曇った(形容詞)" },
-      { id: "207", en: "wrong", ja: "間違った(形容詞)" },
-      { id: "208", en: "think", ja: "考える(動詞)" },
-      { id: "209", en: "subject", ja: "科目、題目(名詞)" },
-      { id: "210", en: "become", ja: "～になる(動詞)" },
-      { id: "211", en: "enter", ja: "入る(動詞)" },
-      { id: "212", en: "imagine", ja: "を想像する(動詞)" },
-      { id: "213", en: "without", ja: "～なしに(前置詞)" },
-      { id: "214", en: "through", ja: "を通り抜けて(前置詞)" },
-      { id: "215", en: "since", ja: "～以来(前置詞)" },
-      { id: "216", en: "horizon", ja: "地平線、水平線(名詞)" },
-      { id: "217", en: "turn on", ja: "を点ける(熟語)" },
-      { id: "218", en: "turn off", ja: "を消す(熟語)" },
-      { id: "219", en: "buy", ja: "買う(動詞)" },
-      { id: "220", en: "celebrate", ja: "祝う(動詞)" },
-      { id: "221", en: "be afraid of", ja: "を恐れる(熟語)" },
-      { id: "222", en: "rule", ja: "支配、統治(名詞)" },
-      { id: "223", en: "get off", ja: "降りる(熟語)" },
-      { id: "224", en: "wallet", ja: "さいふ(名詞)" },
-      { id: "225", en: "run away", ja: "逃げ去る(熟語)" },
-      { id: "226", en: "ride", ja: "乗る(動詞)" },
-      { id: "227", en: "in the future", ja: "将来に(熟語)" },
-      { id: "228", en: "scientist", ja: "科学者(名詞)" },
-      { id: "229", en: "rainy", ja: "雨降りの(形容詞)" },
-      { id: "230", en: "rise", ja: "昇る(動詞)" },
-      { id: "231", en: "steal", ja: "盗む(動詞)" },
-      { id: "232", en: "mirror", ja: "鏡(名詞)" },
-      { id: "233", en: "stay with", ja: "～と一緒に過ごす(熟語)" },
-      { id: "234", en: "while", ja: "～する間(接続詞)" },
-      { id: "235", en: "work for", ja: "のために働く(熟語)" },
-      { id: "236", en: "feel", ja: "感じる(動詞)" },
-      { id: "237", en: "quick", ja: "速い(形容詞)" },
-      { id: "238", en: "ever", ja: "今まで(副詞)" },
-      { id: "239", en: "be good at", ja: "～が上手である(熟語)" },
-      { id: "240", en: "local", ja: "地元の(形容詞)" },
-      { id: "241", en: "lend", ja: "貸す(動詞)" },
-      { id: "242", en: "environment", ja: "環境、状況(名詞)" },
-      { id: "243", en: "hole", ja: "穴(名詞)" },
-      { id: "244", en: "explain", ja: "説明する(動詞)" },
-      { id: "245", en: "finger", ja: "指(名詞)" },
-      { id: "246", en: "head", ja: "頭(名詞)" },
-      { id: "247", en: "hand", ja: "手(名詞)" },
-      { id: "248", en: "shape", ja: "形(名詞)" },
-      { id: "249", en: "think of", ja: "思い付く(熟語)" },
-      { id: "250", en: "country", ja: "国(名詞)" },
-      { id: "251", en: "company", ja: "会社(名詞)" },
-      { id: "252", en: "taste", ja: "味(名詞)" },
-      { id: "253", en: "spend", ja: "費やす(動詞)" },
-      { id: "254", en: "in fact", ja: "実際には(熟語)" },
-      { id: "255", en: "visitor", ja: "観光客(名詞)" },
-      { id: "256", en: "boil", ja: "ゆでる、煮る(動詞)" },
-      { id: "257", en: "history", ja: "歴史(名詞)" },
-      { id: "258", en: "grew", ja: "育った(動詞)" },
-      { id: "259", en: "joined", ja: "参加した(動詞)" },
-      { id: "260", en: "letter", ja: "手紙(名詞)" },
-      { id: "261", en: "why", ja: "なぜ(副詞)" },
-      { id: "262", en: "Saturday", ja: "土曜日(名詞)" },
-      { id: "263", en: "Friday", ja: "金曜日(名詞)" },
-      { id: "264", en: "advice", ja: "忠告(名詞)" },
-      { id: "265", en: "Wednesday", ja: "水曜日(名詞)" },
-      { id: "266", en: "few", ja: "いくつかの(形容詞)" },
-      { id: "267", en: "piece", ja: "欠片、一部(名詞)" },
-      { id: "268", en: "went", ja: "行った(動詞)" },
-      { id: "269", en: "understand", ja: "理解する(動詞)" },
-      { id: "270", en: "reason", ja: "理由(名詞)" },
-      { id: "271", en: "pick", ja: "選ぶ(動詞)" },
-      { id: "272", en: "peaceful", ja: "平和な(形容詞)" },
-      { id: "273", en: "handle", ja: "を処理する(動詞)" },
-      { id: "274", en: "round", ja: "まわりに(前置詞)" },
-      { id: "275", en: "thirsty", ja: "のどの乾いた(形容詞)" },
-      { id: "276", en: "same", ja: "同じ(形容詞)" },
-      { id: "277", en: "be different from", ja: "とは異なる(熟語)" },
-      { id: "278", en: "more", ja: "もっと(副詞)" },
-      { id: "279", en: "purpose", ja: "目的(名詞)" },
-      { id: "280", en: "let's", ja: "～しよう(熟語)" },
-      { id: "281", en: "just a moment", ja: "少しの間(熟語)" },
-      { id: "282", en: "vegetable", ja: "野菜(名詞)" },
-      { id: "283", en: "May", ja: "５月(名詞)" },
-      { id: "284", en: "date", ja: "日付(名詞)" },
-      { id: "285", en: "February", ja: "2月(名詞)" },
-      { id: "286", en: "such", ja: "そのような(形容詞)" },
-      { id: "287", en: "talk to", ja: "に話しかける(熟語)" },
-      { id: "288", en: "wife", ja: "妻(名詞)" },
-      { id: "289", en: "move", ja: "動く、引っ越す(動詞)" },
-      { id: "290", en: "daughter", ja: "娘(名詞)" },
-      { id: "291", en: "always", ja: "いつも(副詞)" },
-      { id: "292", en: "be kind to", ja: "～に親切にする(熟語)" },
-      { id: "293", en: "everyone", ja: "みんな(代名詞)" },
-      { id: "294", en: "agree with", ja: "に賛成である(熟語)" },
-      { id: "295", en: "fix", ja: "固定する(動詞)" },
-      { id: "296", en: "side", ja: "側、面(名詞)" },
-      { id: "297", en: "hungry", ja: "空腹の(形容詞)" },
-      { id: "298", en: "here", ja: "ここに(副詞)" },
-      { id: "299", en: "last", ja: "ひとつ前の、最後の(形容詞)" },
-      { id: "300", en: "headache", ja: "頭痛(名詞)" },
-      { id: "301", en: "mountain", ja: "山(名詞)" },
-      { id: "302", en: "anywhere", ja: "どこでも(副詞)" },
-      { id: "303", en: "brush", ja: "をみがく(動詞)" },
-      { id: "304", en: "breakfast", ja: "朝食(名詞)" },
-      { id: "305", en: "hat", ja: "帽子(名詞)" },
-      { id: "306", en: "dinner", ja: "夕食(名詞)" },
-      { id: "307", en: "watch", ja: "見る(動詞)" },
-      { id: "308", en: "around", ja: "のまわりに(前置詞)" },
-      { id: "309", en: "salad", ja: "サラダ(名詞)" },
-      { id: "310", en: "school festival", ja: "文化祭(名詞)" },
-      { id: "311", en: "nature", ja: "自然(名詞)" },
-      { id: "312", en: "design", ja: "を設計する(動詞)" },
-      { id: "313", en: "share", ja: "分かち合う(動詞)" },
-      { id: "314", en: "long", ja: "長い(形容詞)" },
-      { id: "315", en: "receive", ja: "を受け取る(動詞)" },
-      { id: "316", en: "injure", ja: "を傷つける(動詞)" },
-      { id: "317", en: "theater", ja: "劇場(名詞)" },
-      { id: "318", en: "horror", ja: "恐怖(名詞)" },
-      { id: "319", en: "attend", ja: "に通う、に出席する(動詞)" },
-      { id: "320", en: "die", ja: "死ぬ(動詞)" },
-      { id: "321", en: "every year", ja: "毎年(熟語)" },
-      { id: "322", en: "fast", ja: "速い(形容詞)" },
-      { id: "323", en: "umbrella", ja: "傘(名詞)" },
-      { id: "324", en: "pleasure", ja: "楽しみ(名詞)" },
-      { id: "325", en: "picture", ja: "絵、写真(名詞)" },
-      { id: "326", en: "see", ja: "見る(動詞)" },
-      { id: "327", en: "art", ja: "芸術(名詞)" },
-      { id: "328", en: "too", ja: "～もまた(副詞)" },
-      { id: "329", en: "grandmother", ja: "祖母(名詞)" },
-      { id: "330", en: "doctor", ja: "医者(名詞)" },
-      { id: "331", en: "teach", ja: "教える(動詞)" },
-      { id: "332", en: "station", ja: "駅(名詞)" },
-      { id: "333", en: "after", ja: "～の後で(前置詞)" },
-      { id: "334", en: "airplane", ja: "飛行機(名詞)" },
-      { id: "335", en: "memory", ja: "記憶(名詞)" },
-      { id: "336", en: "wish", ja: "望む(動詞)" },
-      { id: "337", en: "answer", ja: "答える(動詞)" },
-      { id: "338", en: "example", ja: "例(名詞)" },
-      { id: "339", en: "protect", ja: "を守る、保護する(動詞)" },
-      { id: "340", en: "century", ja: "世紀(名詞)" },
-      { id: "341", en: "moment", ja: "瞬間(名詞)" },
-      { id: "342", en: "as usual", ja: "いつものように(熟語)" },
-      { id: "343", en: "difference", ja: "違い(名詞)" },
-      { id: "344", en: "finish", ja: "終える(動詞)" },
-      { id: "345", en: "actually", ja: "実は、本当は(副詞)" },
-      { id: "346", en: "in those days", ja: "当時は(熟語)" },
-      { id: "347", en: "noisy", ja: "騒がしい(形容詞)" },
-      { id: "348", en: "hospital", ja: "病院(名詞)" },
-      { id: "349", en: "recently", ja: "最近(副詞)" },
-      { id: "350", en: "fact", ja: "事実、現実(名詞)" },
-      { id: "351", en: "sight", ja: "見ること(名詞)" },
-      { id: "352", en: "judge", ja: "審判員(名詞)" },
-      { id: "353", en: "complain", ja: "不満を言う(動詞)" },
-      { id: "354", en: "reach", ja: "届く(動詞)" },
-      { id: "355", en: "lose", ja: "失う(動詞)" },
-      { id: "356", en: "a few", ja: "いくらかの(形容詞)" },
-      { id: "357", en: "toy", ja: "玩具(名詞)" },
-      { id: "358", en: "November", ja: "11月(名詞)" },
-      { id: "359", en: "behind", ja: "背後に(前置詞)" },
-      { id: "360", en: "support", ja: "を支援する、応援する(動詞)" },
-      { id: "361", en: "outside", ja: "の外側に(前置詞)" },
-      { id: "362", en: "matter", ja: "問題、困ったこと(名詞)" },
-      { id: "363", en: "forget", ja: "忘れる(動詞)" },
-      { id: "364", en: "wait for", ja: "を待つ(熟語)" },
-      { id: "365", en: "tooth", ja: "歯(名詞)" },
-      { id: "366", en: "rest", ja: "休息する(動詞)" },
-      { id: "367", en: "airline", ja: "航空会社(名詞)" },
-      { id: "368", en: "finally", ja: "ついに、やっと(副詞)" },
-      { id: "369", en: "river", ja: "川(名詞)" },
-      { id: "370", en: "pond", ja: "池(名詞)" },
-      { id: "371", en: "hill", ja: "丘(名詞)" },
-      { id: "372", en: "cry", ja: "泣く(動詞)" },
-      { id: "373", en: "at first", ja: "最初は(熟語)" },
-      { id: "374", en: "grade", ja: "評価(名詞)" },
-      { id: "375", en: "warn", ja: "警告する(動詞)" },
-      { id: "376", en: "comfortable", ja: "心地の良い(形容詞)" },
-      { id: "377", en: "flavor", ja: "風味(名詞)" },
-      { id: "378", en: "meat", ja: "肉(名詞)" },
-      { id: "379", en: "kind", ja: "種類(名詞)" },
-      { id: "380", en: "square", ja: "正方形の(形容詞)" },
-      { id: "381", en: "a kind of", ja: "一種の(熟語)" },
-      { id: "382", en: "bread", ja: "パン(名詞)" },
-      { id: "383", en: "quickly", ja: "素早く(副詞)" },
-      { id: "384", en: "burn", ja: "を燃やす(動詞)" },
-      { id: "385", en: "at that time", ja: "あの時は(熟語)" },
-      { id: "386", en: "word", ja: "言葉(名詞)" },
-      { id: "387", en: "continue", ja: "続く(動詞)" },
-      { id: "388", en: "manager", ja: "部長(名詞)" },
-      { id: "389", en: "not at all", ja: "全くない(熟語)" },
-      { id: "390", en: "abroad", ja: "外国へ(副詞)" },
-      { id: "391", en: "farmer", ja: "農家(名詞)" },
-      { id: "392", en: "market", ja: "市場(名詞)" },
-      { id: "393", en: "health", ja: "健康(名詞)" },
-      { id: "394", en: "fresh", ja: "新鮮な(形容詞)" },
-      { id: "395", en: "build", ja: "建てる(動詞)" },
-      { id: "396", en: "future", ja: "未来(名詞)" },
-      { id: "397", en: "culture", ja: "文化(名詞)" },
-      { id: "398", en: "never", ja: "１度もない(副詞)" },
-      { id: "399", en: "silent", ja: "静かな(形容詞)" },
-      { id: "400", en: "worry about", ja: "について心配する(熟語)" },
-      { id: "401", en: "several", ja: "幾つかの(形容詞)" },
-      { id: "402", en: "however", ja: "しかし(接続詞)" },
-      { id: "403", en: "foreign", ja: "外国の(形容詞)" },
-      { id: "404", en: "interest", ja: "興味(名詞)" },
-      { id: "405", en: "at last", ja: "ついに(熟語)" },
-      { id: "406", en: "speak", ja: "話す(動詞)" },
-      { id: "407", en: "somewhere", ja: "どこかに(副詞)" },
-      { id: "408", en: "for free", ja: "無料で(熟語)" },
-      { id: "409", en: "less than", ja: "未満(熟語)" },
-      { id: "410", en: "correct", ja: "正解(形容詞)" },
-      { id: "411", en: "clever", ja: "利口な(形容詞)" },
-      { id: "412", en: "very", ja: "非常に(副詞)" },
-      { id: "413", en: "probably", ja: "多分(副詞)" },
-      { id: "414", en: "held", ja: "握った(動詞)" },
-      { id: "415", en: "tradition", ja: "伝統(名詞)" },
-      { id: "416", en: "know", ja: "知っている(動詞)" },
-      { id: "417", en: "color", ja: "色(名詞)" },
-      { id: "418", en: "afternoon", ja: "午後(名詞)" },
-      { id: "419", en: "sun", ja: "太陽(名詞)" },
-      { id: "420", en: "summer", ja: "夏(名詞)" },
-      { id: "421", en: "soil", ja: "土(名詞)" },
-      { id: "422", en: "thousand", ja: "千(名詞)" },
-      { id: "423", en: "horse", ja: "馬(名詞)" },
-      { id: "424", en: "lost", ja: "失った(動詞)" },
-      { id: "425", en: "April", ja: "4月(名詞)" },
-      { id: "426", en: "won", ja: "勝った(動詞)" },
-      { id: "427", en: "tell", ja: "伝える(動詞)" },
-      { id: "428", en: "useful", ja: "役に立つ(形容詞)" },
-      { id: "429", en: "cloud", ja: "雲(名詞)" },
-      { id: "430", en: "exchange", ja: "交換(動詞)" },
-      { id: "431", en: "shake", ja: "震える(動詞)" },
-      { id: "432", en: "raise", ja: "手などを挙げる(動詞)" },
-      { id: "433", en: "agree", ja: "賛成する(動詞)" },
-      { id: "434", en: "smell", ja: "においがする(動詞)" },
-      { id: "435", en: "where", ja: "どこに(疑問詞)" },
-      { id: "436", en: "poor", ja: "貧乏な(形容詞)" },
-      { id: "437", en: "gave", ja: "与えた(動詞)" },
-      { id: "438", en: "take", ja: "取る(動詞)" },
-      { id: "439", en: "walk", ja: "散歩(名詞)" },
-      { id: "440", en: "both", ja: "両方の(形容詞)" },
-      { id: "441", en: "narrow", ja: "狭い(形容詞)" },
-      { id: "442", en: "studied", ja: "勉強した(動詞)" },
-      { id: "443", en: "sold", ja: "売った(動詞)" },
-      { id: "444", en: "go abroad", ja: "外国に行く(熟語)" },
-      { id: "445", en: "spoke", ja: "話した(動詞)" },
-      { id: "446", en: "made", ja: "作った(動詞)" },
-      { id: "447", en: "graduate", ja: "卒業する(動詞)" },
-      { id: "448", en: "within", ja: "以内で(前置詞)" },
-      { id: "449", en: "yesterday", ja: "昨日(副詞)" },
-      { id: "450", en: "because", ja: "なぜなら(接続詞)" },
-      { id: "451", en: "dangerous", ja: "危険な(形容詞)" },
-      { id: "452", en: "island", ja: "島(名詞)" },
-      { id: "453", en: "temple", ja: "お寺(名詞)" },
-      { id: "454", en: "beginning", ja: "最初(名詞)" },
-      { id: "455", en: "traditional", ja: "伝統的な(形容詞)" },
-      { id: "456", en: "in season", ja: "旬で(熟語)" },
-      { id: "457", en: "heaven", ja: "天国(名詞)" },
-      { id: "458", en: "fool", ja: "馬鹿(名詞)" },
-      { id: "459", en: "as a result of", ja: "の結果(熟語)" },
-      { id: "460", en: "address", ja: "住所(名詞)" },
-      { id: "461", en: "say again", ja: "もう一度言う(熟語)" },
-      { id: "462", en: "lie", ja: "嘘(名詞)" },
-      { id: "463", en: "evacuation", ja: "避難(名詞)" },
-      { id: "464", en: "found", ja: "を見つけた(動詞)" },
-      { id: "465", en: "help with", ja: "を助ける(熟語)" },
-      { id: "466", en: "personal", ja: "個人の(形容詞)" },
-      { id: "467", en: "in advance", ja: "前もって(熟語)" },
-      { id: "468", en: "drop out", ja: "中退する(熟語)" },
-      { id: "469", en: "independence", ja: "独立(名詞)" },
-      { id: "470", en: "gentle", ja: "優しい(形容詞)" },
-      { id: "471", en: "a second", ja: "少しの間(熟語)" },
-      { id: "472", en: "shout", ja: "叫ぶ(動詞)" },
-      { id: "473", en: "ordinary", ja: "普通の(形容詞)" },
-      { id: "474", en: "more and more", ja: "ますます多くの(熟語)" },
-      { id: "475", en: "many", ja: "多くの(形容詞)" },
-      { id: "476", en: "sentence", ja: "文(名詞)" },
-      { id: "477", en: "up until", ja: "まで(熟語)" },
-      { id: "478", en: "whole", ja: "全ての(形容詞)" },
-      { id: "479", en: "calligraphy", ja: "書道(名詞)" },
-      { id: "480", en: "calm", ja: "落ち着いた(形容詞)" },
-      { id: "481", en: "fail", ja: "失敗する(動詞)" },
-      { id: "482", en: "too ～ for", ja: "～すぎる(熟語)" },
-      { id: "483", en: "thousands of", ja: "何千もの(熟語)" },
-      { id: "484", en: "so ～ that ～", ja: "とてもなので～だ(熟語)" },
-      { id: "485", en: "unhappy", ja: "不幸な(形容詞)" },
-      { id: "486", en: "well", ja: "健康な(形容詞)" },
-      { id: "487", en: "violence", ja: "暴力(名詞)" },
-      { id: "488", en: "awesome", ja: "すばらしい(形容詞)" },
-      { id: "489", en: "enemy", ja: "敵(名詞)" },
-      { id: "490", en: "someone", ja: "だれか、ある人(代名詞)" },
-      { id: "491", en: "arrow", ja: "矢(名詞)" },
-      { id: "492", en: "bother", ja: "面倒(動詞)" },
-      { id: "493", en: "fight", ja: "戦う(動詞)" },
-      { id: "494", en: "worth", ja: "の価値がある(形容詞)" },
-      { id: "495", en: "custom", ja: "習慣(名詞)" },
-      { id: "496", en: "sent", ja: "送った(動詞)" },
-      { id: "497", en: "announce", ja: "を発表する(動詞)" },
-      { id: "498", en: "illegal", ja: "違法な(形容詞)" },
-      { id: "499", en: "electronic", ja: "電子の(形容詞)" },
-      { id: "500", en: "latest", ja: "最新の(形容詞)" },
-      { id: "501", en: "hurry", ja: "急ぐ(動詞)" },
-      { id: "502", en: "shelter", ja: "避難所(名詞)" },
-      { id: "503", en: "crowd", ja: "群衆(名詞)" },
-      { id: "504", en: "surprisingly", ja: "驚いたことには(副詞)" },
-      { id: "505", en: "by bus", ja: "バスで(熟語)" },
-      { id: "506", en: "give a ride", ja: "を車に乗せる(熟語)" },
-      { id: "507", en: "cancer", ja: "がん(名詞)" },
-      { id: "508", en: "every minutes", ja: "毎分ごとに(熟語)" },
-      { id: "509", en: "fill", ja: "いっぱいにする(動詞)" },
-      { id: "510", en: "at most", ja: "多くとも(熟語)" },
-      { id: "511", en: "on the way", ja: "道の途中で(熟語)" },
-      { id: "512", en: "spelling", ja: "綴り(名詞)" },
-      { id: "513", en: "beer", ja: "ビール(名詞)" },
-      { id: "514", en: "gas", ja: "ガソリン(名詞)" },
-      { id: "515", en: "both of", ja: "二つとも(熟語)" },
-      { id: "516", en: "nuclear", ja: "核の、原子力の(形容詞)" },
-      { id: "517", en: "between", ja: "～と～の間(前置詞)" },
-      { id: "518", en: "try to", ja: "しようとする(熟語)" },
-      { id: "519", en: "disagree", ja: "意見が合わない(動詞)" },
-      { id: "520", en: "destroy", ja: "を破壊する(動詞)" },
-      { id: "521", en: "go straight", ja: "まっすぐ行く(熟語)" },
-      { id: "522", en: "eat out", ja: "外食する(熟語)" },
-      { id: "523", en: "would like to ～", ja: "に～してほしい(熟語)" },
-      { id: "524", en: "palace", ja: "宮殿(名詞)" },
-      { id: "525", en: "bake", ja: "焼く(動詞)" },
-      { id: "526", en: "sailor", ja: "船員(名詞)" },
-      { id: "527", en: "tell to ～", ja: "に～するように言う(熟語)" },
-      { id: "528", en: "brain", ja: "頭脳(名詞)" },
-      { id: "529", en: "electronic device", ja: "電子機器(熟語)" },
-      { id: "530", en: "get fired", ja: "解雇される(熟語)" },
-      { id: "531", en: "stand by", ja: "そばに立つ(熟語)" },
-      { id: "532", en: "border", ja: "国境(名詞)" },
-      { id: "533", en: "learn about", ja: "について学ぶ(熟語)" },
-      { id: "534", en: "sustainable", ja: "存続可能な(形容詞)" },
-      { id: "535", en: "encourage", ja: "を勇気づける(動詞)" },
-      { id: "536", en: "usual", ja: "通常の(形容詞)" },
-      { id: "537", en: "fossil fuel", ja: "化石燃料(熟語)" },
-      { id: "538", en: "death", ja: "死(名詞)" },
-      { id: "539", en: "inventor", ja: "発明家(名詞)" },
-      { id: "540", en: "born", ja: "生まれる(形容詞)" },
-      { id: "541", en: "habit", ja: "習慣(名詞)" },
-      { id: "542", en: "earth", ja: "地球(名詞)" },
-      { id: "543", en: "barber", ja: "散髪屋(名詞)" },
-      { id: "544", en: "emergency", ja: "緊急事態(名詞)" },
-      { id: "545", en: "get on", ja: "乗り込む(熟語)" },
-      { id: "546", en: "earthquake", ja: "地震(名詞)" },
-      { id: "547", en: "just in case", ja: "もしもの場合に備えて(熟語)" },
-      { id: "548", en: "laugh", ja: "笑う(動詞)" },
-      { id: "549", en: "field trip", ja: "遠足(熟語)" },
-      { id: "550", en: "spread", ja: "広がる、広まる(動詞)" },
-      { id: "551", en: "from the experience", ja: "経験から(熟語)" },
-      { id: "552", en: "such as", ja: "のような(熟語)" },
-      { id: "553", en: "Let us(Let's)", ja: "～しましょう(熟語)" },
-      { id: "554", en: "tough", ja: "困難な，難しい(形容詞)" },
-      { id: "555", en: "lip", ja: "唇(名詞)" },
-      { id: "556", en: "tightly", ja: "しっかりと(副詞)" },
-      { id: "557", en: "bridge", ja: "橋(名詞)" },
-      { id: "558", en: "farewell party", ja: "送別会(熟語)" },
-      { id: "559", en: "elementary school", ja: "小学校(熟語)" },
-      { id: "560", en: "president", ja: "大統領(名詞)" },
-      { id: "561", en: "entrance ceremony", ja: "入学式(熟語)" },
-      { id: "562", en: "relatively", ja: "比較的(副詞)" },
-      { id: "563", en: "not always", ja: "いつもとは限らない(熟語)" },
-      { id: "564", en: "row", ja: "こぐ(動詞)" },
-      { id: "565", en: "drove", ja: "運転した(動詞)" },
-      { id: "566", en: "low", ja: "低い(形容詞)" },
-      { id: "567", en: "be excited", ja: "興奮をする(熟語)" },
-      { id: "568", en: "branch", ja: "枝(名詞)" },
-      { id: "569", en: "on your right", ja: "右側に(熟語)" },
-      { id: "570", en: "believe in", ja: "を信じる(熟語)" },
-      { id: "571", en: "common", ja: "共通の(形容詞)" },
-      { id: "572", en: "discover", ja: "発見する(動詞)" },
-      { id: "573", en: "tie", ja: "ネクタイ(名詞)" },
-      { id: "574", en: "coal", ja: "石炭(名詞)" },
-      { id: "575", en: "have a headache", ja: "頭痛がする(熟語)" },
-      { id: "576", en: "care for", ja: "の面倒を見る(熟語)" },
-      { id: "577", en: "agree to", ja: "を承諾する(熟語)" },
-      { id: "578", en: "feel free to", ja: "気軽にする(熟語)" },
-      { id: "579", en: "wind", ja: "風(名詞)" },
-      { id: "580", en: "in case of", ja: "の場合には(熟語)" },
-      { id: "581", en: "from now on", ja: "これからは(熟語)" },
-      { id: "582", en: "thought", ja: "考え(名詞)" },
-      { id: "583", en: "make all the difference", ja: "大きな違いを生む(熟語)" },
-      { id: "584", en: "peace", ja: "平和(名詞)" },
-      { id: "585", en: "poet", ja: "詩人(名詞)" },
-      { id: "586", en: "not only but also ～", ja: "だけでなく～もまた(熟語)" },
-      { id: "587", en: "in case ～", ja: "～した場合には(熟語)" },
-      { id: "588", en: "definitely", ja: "もちろん、確かに(副詞)" },
-      { id: "589", en: "rose", ja: "昇った(動詞)" },
-      { id: "590", en: "write down", ja: "書く(熟語)" },
-      { id: "591", en: "be made of", ja: "で出来ている(熟語)" },
-      { id: "592", en: "domestic", ja: "国内の(形容詞)" },
-      { id: "593", en: "rather than", ja: "ではなく(熟語)" },
-      { id: "594", en: "most", ja: "たいていの，大部分の(形容詞)" },
-      { id: "595", en: "vacation", ja: "休暇(名詞)" },
-      { id: "596", en: "run out of", ja: "を使い果たす(熟語)" },
-      { id: "597", en: "get attention", ja: "注意を引く(熟語)" },
-      { id: "598", en: "strict", ja: "厳しい(形容詞)" },
-      { id: "599", en: "artistic", ja: "芸術的な(形容詞)" },
-      { id: "600", en: "in conclusion", ja: "結論として(熟語)" },
-      { id: "601", en: "most of", ja: "のほとんど(熟語)" },
-      { id: "602", en: "little", ja: "ほとんど～ない(形容詞)" },
-      { id: "603", en: "wonder", ja: "不思議に思う(動詞)" },
-      { id: "604", en: "war", ja: "戦争(名詞)" },
-      { id: "605", en: "senior", ja: "年上の，上級の(形容詞)" },
-      { id: "606", en: "roof", ja: "屋根(名詞)" },
-      { id: "607", en: "tax", ja: "税，税金(名詞)" },
-      { id: "608", en: "medicine", ja: "薬(名詞)" },
-      { id: "609", en: "drop", ja: "落ちる(動詞)" },
-      { id: "610", en: "what to", ja: "何をすべきか(熟語)" },
-      { id: "611", en: "east", ja: "東(名詞)" },
-      { id: "612", en: "absent", ja: "欠席の(形容詞)" },
-      { id: "613", en: "ecosystem", ja: "生態系(名詞)" },
-      { id: "614", en: "illiterate", ja: "読み書きのできない(形容詞)" },
-      { id: "615", en: "be in trouble", ja: "困っている(熟語)" },
-      { id: "616", en: "possible", ja: "可能な(形容詞)" },
-      { id: "617", en: "in a hurry", ja: "急いで(熟語)" },
-      { id: "618", en: "introduce", ja: "紹介する(動詞)" },
-      { id: "619", en: "ban", ja: "を禁止する(動詞)" },
-      { id: "620", en: "land", ja: "土地(名詞)" },
-      { id: "621", en: "by car", ja: "車で(熟語)" },
-      { id: "622", en: "creative", ja: "創造力のある(形容詞)" },
-      { id: "623", en: "overseas", ja: "外国へ(副詞)" },
-      { id: "624", en: "discuss", ja: "話し合う(動詞)" },
-      { id: "625", en: "flat", ja: "平らな(形容詞)" },
-      { id: "626", en: "daily", ja: "日常の(形容詞)" },
-      { id: "627", en: "prefer A to B", ja: "BよりAを好む(熟語)" },
-      { id: "628", en: "hopeful", ja: "希望を持っている(形容詞)" },
-      { id: "629", en: "so far", ja: "これまでは(熟語)" },
-      { id: "630", en: "one by one", ja: "一つずつ(熟語)" },
-      { id: "631", en: "all day long", ja: "一日中(熟語)" },
-      { id: "632", en: "desert", ja: "砂漠(名詞)" },
-      { id: "633", en: "be ready for", ja: "の用意ができている(熟語)" },
-      { id: "634", en: "port", ja: "港(名詞)" },
-      { id: "635", en: "researcher", ja: "研究者(名詞)" },
-      { id: "636", en: "with a smile", ja: "笑顔で(熟語)" },
-      { id: "637", en: "belong", ja: "のものである(動詞)" },
-      { id: "638", en: "live abroad", ja: "海外で生活する(熟語)" },
-      { id: "639", en: "functional", ja: "実用的な(形容詞)" },
-      { id: "640", en: "be famous for", ja: "で有名である(熟語)" },
-      { id: "641", en: "electricity", ja: "電力(名詞)" },
-      { id: "642", en: "keep in touch", ja: "連絡を取り合う(熟語)" },
-      { id: "643", en: "leaf", ja: "葉(名詞)" },
-      { id: "644", en: "establish", ja: "を設立する(動詞)" },
-      { id: "645", en: "climb", ja: "登る(動詞)" },
-      { id: "646", en: "amaze", ja: "をびっくりさせる(動詞)" },
-      { id: "647", en: "valley", ja: "谷(名詞)" },
-      { id: "648", en: "at noon", ja: "正午に(熟語)" },
-      { id: "649", en: "satisfy", ja: "を満足させる(動詞)" },
-      { id: "650", en: "transport", ja: "を輸送する(動詞)" },
-      { id: "651", en: "human being", ja: "人間(名詞)" },
-      { id: "652", en: "blow", ja: "吹く(動詞)" },
-      { id: "653", en: "believe it or not", ja: "信じられないだろうけど(熟語)" },
-      { id: "654", en: "monthly", ja: "月に1回の(形容詞)" },
-      { id: "655", en: "second", ja: "秒(名詞)" },
-      { id: "656", en: "get out", ja: "外へ出る(熟語)" },
-      { id: "657", en: "although", ja: "であるけれど(接続詞)" },
-      { id: "658", en: "silk", ja: "絹(名詞)" },
-      { id: "659", en: "endangered", ja: "絶滅の危機にさらされている(形容詞)" },
-      { id: "660", en: "convenient", ja: "便利な(形容詞)" },
-      { id: "661", en: "gym", ja: "体育館(名詞)" },
-      { id: "662", en: "go ahead", ja: "先に行く(熟語)" },
-      { id: "663", en: "breed", ja: "を飼育する，繁殖する(動詞)" },
-      { id: "664", en: "wrap", ja: "を包む(動詞)" },
-      { id: "665", en: "increase", ja: "を増やす，増大させる(動詞)" },
-      { id: "666", en: "railway", ja: "鉄道(名詞)" },
-      { id: "667", en: "on the other hand", ja: "一方で(熟語)" },
-      { id: "668", en: "shoulder", ja: "肩(名詞)" },
-      { id: "669", en: "supply", ja: "供給(名詞)" },
-      { id: "670", en: "according to", ja: "によれば(熟語)" },
-      { id: "671", en: "lead", ja: "を導く(動詞)" },
-      { id: "672", en: "national", ja: "国家の(形容詞)" },
-      { id: "673", en: "do a favor", ja: "に頼み事を聞く(熟語)" },
-      { id: "674", en: "foot", ja: "足(名詞)" },
-      { id: "675", en: "take out", ja: "持ち帰り(熟語)" },
-      { id: "676", en: "survey", ja: "調査(名詞)" },
-      { id: "677", en: "south", ja: "南(名詞)" },
-      { id: "678", en: "let", ja: "～に～をさせる(動詞)" },
-      { id: "679", en: "so that ～", ja: "するために(熟語)" },
-      { id: "680", en: "sort", ja: "種類(名詞)" },
-      { id: "681", en: "arrive at", ja: "に到着する(熟語)" },
-      { id: "682", en: "on foot", ja: "歩いて(熟語)" },
-      { id: "683", en: "jewel", ja: "宝石(名詞)" },
-      { id: "684", en: "fall in love with", ja: "に恋をする(熟語)" },
-      { id: "685", en: "though", ja: "だけれども(接続詞)" },
-      { id: "686", en: "be in danger of", ja: "の危険にさらされている(熟語)" },
-      { id: "687", en: "dead", ja: "死んだ(形容詞)" },
-      { id: "688", en: "hundred", ja: "百(名詞)" },
-      { id: "689", en: "indeed", ja: "実に(副詞)" },
-      { id: "690", en: "government", ja: "政府(名詞)" },
-      { id: "691", en: "countryside", ja: "田舎(名詞)" },
-      { id: "692", en: "amount", ja: "量，額(名詞)" },
-      { id: "693", en: "limited", ja: "限られた(形容詞)" },
-      { id: "694", en: "climate", ja: "気候(名詞)" },
-      { id: "695", en: "out of order", ja: "故障して(熟語)" },
-      { id: "696", en: "human rights", ja: "人権(名詞)" },
-      { id: "697", en: "surround", ja: "を囲む(動詞)" },
-      { id: "698", en: "holy", ja: "神聖な(形容詞)" },
-      { id: "699", en: "instruction", ja: "指示(名詞)" },
-      { id: "700", en: "waste", ja: "浪費(動詞)" },
-      { id: "701", en: "survive", ja: "生き残る(動詞)" },
-      { id: "702", en: "weekly", ja: "週刊の(形容詞)" },
-      { id: "703", en: "on the wall", ja: "壁に(熟語)" },
-      { id: "704", en: "be about to", ja: "する直前である(熟語)" },
-      { id: "705", en: "magazine", ja: "雑誌(名詞)" },
-      { id: "706", en: "store", ja: "を蓄える(動詞)" },
-      { id: "707", en: "opinion", ja: "意見，考え(名詞)" },
-      { id: "708", en: "day after day", ja: "毎日(熟語)" },
-      { id: "709", en: "lazy", ja: "怠け者の(形容詞)" },
-      { id: "710", en: "discrimination", ja: "差別(名詞)" },
-      { id: "711", en: "root", ja: "根(名詞)" },
-      { id: "712", en: "fold", ja: "を折る，折りたたむ(動詞)" },
-      { id: "713", en: "even so", ja: "それでも(熟語)" },
-      { id: "714", en: "afraid", ja: "恐れて(形容詞)" },
-      { id: "715", en: "bit", ja: "少し(名詞)" },
-      { id: "716", en: "all over", ja: "の至る所に(熟語)" },
-      { id: "717", en: "development", ja: "開発(名詞)" },
-      { id: "718", en: "steam", ja: "蒸気(名詞)" },
-      { id: "719", en: "foolish", ja: "愚かな(形容詞)" },
-      { id: "720", en: "pain", ja: "痛み(名詞)" },
-      { id: "721", en: "from A to B", ja: "AからBまで(熟語)" },
-      { id: "722", en: "chemical", ja: "化学物質(名詞)" },
-      { id: "723", en: "check out", ja: "を調査する(熟語)" },
-      { id: "724", en: "said", ja: "言った(動詞)" },
-      { id: "725", en: "capture", ja: "を捕まえる(動詞)" },
-      { id: "726", en: "paper crane", ja: "折り鶴(名詞)" },
-      { id: "727", en: "be concerned with", ja: "に関係している(熟語)" },
-      { id: "728", en: "be sick of", ja: "にうんざりしてる(熟語)" },
-      { id: "729", en: "tiny", ja: "小さな(形容詞)" },
-      { id: "730", en: "wet", ja: "濡れている(形容詞)" },
-      { id: "731", en: "get over", ja: "を乗りこえる(熟語)" },
-      { id: "732", en: "arrest", ja: "を逮捕する(動詞)" },
-      { id: "733", en: "curious", ja: "好奇心の強い(形容詞)" },
-      { id: "734", en: "encourage to ～", ja: "に～するように促す(熟語)" },
-      { id: "735", en: "get along with", ja: "うまくやる(熟語)" },
-      { id: "736", en: "unfair", ja: "不公平な，不当な(形容詞)" },
-      { id: "737", en: "strange", ja: "奇妙な(形容詞)" },
-      { id: "738", en: "carefully", ja: "注意深く(副詞)" },
-      { id: "739", en: "tired", ja: "疲れて(形容詞)" },
-      { id: "740", en: "take a rest", ja: "休憩する(熟語)" },
-      { id: "741", en: "terrible", ja: "ひどい(形容詞)" },
-      { id: "742", en: "hope to", ja: "したいと思う(熟語)" },
-      { id: "743", en: "accept", ja: "を受け入れる(動詞)" },
-      { id: "744", en: "statue", ja: "像(名詞)" },
-      { id: "745", en: "else", ja: "その他に(副詞)" },
-      { id: "746", en: "law", ja: "法律(名詞)" },
-      { id: "747", en: "check ～ out", ja: "を確認する(熟語)" },
-      { id: "748", en: "stationery shop", ja: "文房具店(名詞)" },
-      { id: "749", en: "site", ja: "場所(名詞)" },
-      { id: "750", en: "hand out", ja: "を配る(熟語)" },
-      { id: "751", en: "search for", ja: "を探索する(熟語)" },
-      { id: "752", en: "decision", ja: "決定(名詞)" },
-      { id: "753", en: "day in，day out", ja: "来る日も来る日も(熟語)" },
-      { id: "754", en: "in detail", ja: "詳細に(熟語)" },
-      { id: "755", en: "growth", ja: "増加(名詞)" },
-      { id: "756", en: "stationery", ja: "文房具(名詞)" },
-      { id: "757", en: "above", ja: "上に，上記の(副詞)" },
-      { id: "758", en: "stand", ja: "を我慢する(動詞)" },
-      { id: "759", en: "yet", ja: "まだ，今のところは(副詞)" },
-      { id: "760", en: "include", ja: "を含む(動詞)" },
-      { id: "761", en: "hold", ja: "握る(動詞)" },
-      { id: "762", en: "carbon dioxide", ja: "二酸化炭素(名詞)" },
-      { id: "763", en: "hear from", ja: "から連絡がある(熟語)" },
-      { id: "764", en: "apply", ja: "当てはまる(動詞)" },
-      { id: "765", en: "enough to", ja: "するのに十分(熟語)" },
-      { id: "766", en: "wake", ja: "目が覚める(動詞)" },
-      { id: "767", en: "depend on", ja: "に依存する(熟語)" },
-      { id: "768", en: "bomb", ja: "爆弾(名詞)" },
-      { id: "769", en: "resident", ja: "住民，居住者(名詞)" },
-      { id: "770", en: "audience", ja: "聴衆，観客(名詞)" },
-      { id: "771", en: "brave", ja: "勇敢な(形容詞)" },
-      { id: "772", en: "extinguisher", ja: "消火器(名詞)" },
-      { id: "773", en: "iron", ja: "鉄(名詞)" },
-      { id: "774", en: "be likely to", ja: "する可能性が高い(熟語)" },
-      { id: "775", en: "trade", ja: "貿易(名詞)" },
-      { id: "776", en: "hall", ja: "廊下(名詞)" },
-      { id: "777", en: "be in need of", ja: "を必要とする(熟語)" },
-      { id: "778", en: "in good shape", ja: "良い状態で(熟語)" },
-      { id: "779", en: "fill in", ja: "に必要事項を記入する(熟語)" },
-      { id: "780", en: "capital", ja: "首都(名詞)" },
-      { id: "781", en: "person", ja: "人(名詞)" },
-      { id: "782", en: "run", ja: "を主催する(動詞)" },
-      { id: "783", en: "flight", ja: "飛行(名詞)" },
-      { id: "784", en: "get lost", ja: "道に迷う(熟語)" },
-      { id: "785", en: "renewable", ja: "再生可能な(形容詞)" },
-      { id: "786", en: "all the time", ja: "常に(熟語)" },
-      { id: "787", en: "poem", ja: "詩(名詞)" },
-      { id: "788", en: "ask 人 for", ja: "人に求める(熟語)" },
-      { id: "789", en: "donate", ja: "を寄付する(動詞)" },
-      { id: "790", en: "begin", ja: "始まる(動詞)" },
-      { id: "791", en: "nest", ja: "巣(名詞)" },
-      { id: "792", en: "be known as", ja: "として知られている(熟語)" },
-      { id: "793", en: "import", ja: "を輸入する(動詞)" },
-      { id: "794", en: "secret", ja: "秘密(名詞)" },
-      { id: "795", en: "given", ja: "与えた(形容詞)" },
-      { id: "796", en: "progress", ja: "進歩(名詞)" },
-      { id: "797", en: "unused", ja: "未使用の(形容詞)" },
-      { id: "798", en: "neither", ja: "～も～もない(副詞)" },
-      { id: "799", en: "as a whole", ja: "全体で(熟語)" },
-      { id: "800", en: "to go", ja: "持ち帰り(熟語)" },
-      { id: "801", en: "wave", ja: "波(名詞)" },
-      { id: "802", en: "yen", ja: "円(名詞)" },
-      { id: "803", en: "debate", ja: "討論(名詞)" },
-      { id: "804", en: "lullaby", ja: "子守歌(名詞)" },
-      { id: "805", en: "feather", ja: "羽(名詞)" },
-      { id: "806", en: "go through", ja: "人生を送る(熟語)" },
-      { id: "807", en: "note", ja: "紙幣(名詞)" },
-      { id: "808", en: "awake", ja: "目が覚める(形容詞)" },
-      { id: "809", en: "fall", ja: "落ちる，降りる(動詞)" },
-      { id: "810", en: "crazy", ja: "気の狂った(形容詞)" },
-      { id: "811", en: "for instance", ja: "例えば(熟語)" },
-      { id: "812", en: "plastic bag", ja: "ビニールぶくろ(名詞)" },
-      { id: "813", en: "discussion", ja: "討論(名詞)" },
-      { id: "814", en: "junior high school", ja: "中学校(名詞)" },
-      { id: "815", en: "drop by", ja: "に立ち寄る(熟語)" },
-      { id: "816", en: "metal", ja: "金属(名詞)" },
-      { id: "817", en: "relation", ja: "関係(名詞)" },
-      { id: "818", en: "colony", ja: "植民地(名詞)" },
-      { id: "819", en: "airport", ja: "空港(名詞)" },
-      { id: "820", en: "past", ja: "過去の(名詞)" },
-      { id: "821", en: "count on", ja: "を当てにする(熟語)" },
-      { id: "822", en: "succeed", ja: "成功する(動詞)" },
-      { id: "823", en: "certain", ja: "確かな(形容詞)" },
-      { id: "824", en: "be amazed at", ja: "に驚かされる(熟語)" },
-      { id: "825", en: "modern", ja: "現代的な(形容詞)" },
-      { id: "826", en: "get rid of", ja: "を取り除く(熟語)" },
-      { id: "827", en: "affect", ja: "に影響を与える(動詞)" },
-      { id: "828", en: "match", ja: "試合(名詞)" },
-      { id: "829", en: "beyond", ja: "を超えた所に(前置詞)" },
-      { id: "830", en: "president", ja: "社長(名詞)" },
-      { id: "831", en: "as well", ja: "同様に(熟語)" },
-      { id: "832", en: "even", ja: "～さえ(副詞)" },
-      { id: "833", en: "be satisfied with", ja: "に満足している(熟語)" },
-      { id: "834", en: "quietly", ja: "静かに，落ち着いて(副詞)" },
-      { id: "835", en: "for example", ja: "例えば(熟語)" },
-      { id: "836", en: "foreign language", ja: "外国語(名詞)" },
-      { id: "837", en: "blood", ja: "血(名詞)" },
-      { id: "838", en: "fall asleep", ja: "眠る(熟語)" },
-      { id: "839", en: "signal", ja: "信号(名詞)" },
-      { id: "840", en: "decide to", ja: "に決める(熟語)" },
-      { id: "841", en: "protest", ja: "抗議する(動詞)" },
-      { id: "842", en: "extinction", ja: "絶滅(名詞)" },
-      { id: "843", en: "fantastic", ja: "素晴らしい(形容詞)" },
-      { id: "844", en: "belong to", ja: "に属している(熟語)" },
-      { id: "845", en: "pleased", ja: "喜んで(形容詞)" },
-      { id: "846", en: "uniform", ja: "制服(名詞)" },
-      { id: "847", en: "stranger", ja: "他人(名詞)" },
-      { id: "848", en: "neighbor", ja: "隣人(名詞)" },
-      { id: "849", en: "mean", ja: "意味する(動詞)" },
-      { id: "850", en: "courage", ja: "勇気(名詞)" },
-      { id: "851", en: "eraser", ja: "消しゴム(名詞)" },
-      { id: "852", en: "quarter", ja: "4分の1(名詞)" },
-      { id: "853", en: "get out of", ja: "の外に出る(熟語)" },
-      { id: "854", en: "leg", ja: "脚(名詞)" },
-      { id: "855", en: "from now", ja: "これからは(熟語)" },
-      { id: "856", en: "army", ja: "陸軍(名詞)" },
-      { id: "857", en: "language", ja: "言語(名詞)" },
-      { id: "858", en: "universe", ja: "宇宙(名詞)" },
-      { id: "859", en: "for a while", ja: "暫らくの間(熟語)" },
-      { id: "860", en: "solve", ja: "を解決する(動詞)" },
-      { id: "861", en: "stay up", ja: "起きている(熟語)" },
-      { id: "862", en: "effective", ja: "効果的な(形容詞)" },
-      { id: "863", en: "pursue", ja: "を追い求める(動詞)" },
-      { id: "864", en: "step", ja: "足元，階段(名詞)" },
-      { id: "865", en: "an average of", ja: "の平均(熟語)" },
-      { id: "866", en: "relate to ～", ja: "を～に関係させる(接続詞)" },
-      { id: "867", en: "well-known", ja: "有名な(形容詞)" },
-      { id: "868", en: "condition", ja: "状況(名詞)" },
-      { id: "869", en: "burden", ja: "負担，重荷(名詞)" },
-      { id: "870", en: "wood", ja: "木材(名詞)" },
-      { id: "871", en: "shade", ja: "陰，日陰(名詞)" },
-      { id: "872", en: "merchant", ja: "商人(名詞)" },
-      { id: "873", en: "son", ja: "息子(名詞)" },
-      { id: "874", en: "heard", ja: "聞いた(動詞)" },
-      { id: "875", en: "sidewalk", ja: "歩道(名詞)" },
-      { id: "876", en: "quiet", ja: "静かな(形容詞)" },
-      { id: "877", en: "billion", ja: "10億(名詞)" },
-      { id: "878", en: "graduation", ja: "卒業(名詞)" },
-      { id: "879", en: "by the way", ja: "ところで(熟語)" },
-      { id: "880", en: "release", ja: "を放出する(動詞)" },
-      { id: "881", en: "heat", ja: "熱(名詞)" },
-      { id: "882", en: "get tired", ja: "疲れる(熟語)" },
-      { id: "883", en: "perhaps", ja: "多分(副詞)" },
-      { id: "884", en: "factory", ja: "工場(名詞)" },
-      { id: "885", en: "besides", ja: "その上，さらに(接続詞)" },
-      { id: "886", en: "successful", ja: "成功した(形容詞)" },
-      { id: "887", en: "weapon", ja: "武器(名詞)" },
-      { id: "888", en: "as soon as possible", ja: "できるだけ早く(熟語)" },
-      { id: "889", en: "little", ja: "小さい，かわいい(形容詞)" },
-      { id: "890", en: "necessary", ja: "必要な(形容詞)" },
-      { id: "891", en: "someone in need", ja: "助けが必要な人(熟語)" },
-      { id: "892", en: "extend", ja: "を広げる(動詞)" },
-      { id: "893", en: "happiness", ja: "幸福(名詞)" },
-      { id: "894", en: "be scared of", ja: "が怖い(熟語)" },
-      { id: "895", en: "midnight", ja: "真夜中(名詞)" },
-      { id: "896", en: "consumer", ja: "消費者(名詞)" },
-      { id: "897", en: "get up", ja: "起きる(熟語)" },
-      { id: "898", en: "depend", ja: "頼る(動詞)" },
-      { id: "899", en: "this way", ja: "このように(熟語)" },
-      { id: "900", en: "trust", ja: "を信用する(動詞)" },
-      { id: "901", en: "film", ja: "映画(名詞)" },
-      { id: "902", en: "honest", ja: "正直な(形容詞)" },
-      { id: "903", en: "college", ja: "大学(名詞)" },
-      { id: "904", en: "loss", ja: "失うこと，喪失(名詞)" },
-      { id: "905", en: "front", ja: "前(名詞)" },
-      { id: "906", en: "honey", ja: "蜂蜜(名詞)" },
-      { id: "907", en: "grass", ja: "草(名詞)" },
-      { id: "908", en: "after a while", ja: "しばらくして(熟語)" },
-      { id: "909", en: "suddenly", ja: "突然に(副詞)" },
-      { id: "910", en: "heart", ja: "心(名詞)" },
-      { id: "911", en: "disaster", ja: "災害(名詞)" },
-      { id: "912", en: "instead of", ja: "の代わりに(熟語)" },
-      { id: "913", en: "too to ～", ja: "～するには過ぎる(熟語)" },
-      { id: "914", en: "disease", ja: "病気(名詞)" },
-      { id: "915", en: "weak", ja: "弱い，かすかな(形容詞)" },
-      { id: "916", en: "pass by", ja: "通り過ぎる(熟語)" },
-      { id: "917", en: "could", ja: "できた(助動詞)" },
-      { id: "918", en: "from ～ to ～", ja: "～から～まで(熟語)" },
-      { id: "919", en: "rapidly", ja: "速く，急速に(副詞)" },
-      { id: "920", en: "charge", ja: "を充電する(動詞)" },
-      { id: "921", en: "meant", ja: "意味した(動詞)" },
-      { id: "922", en: "behavior", ja: "ふるまい(名詞)" },
-      { id: "923", en: "uncomfortable", ja: "心地の悪い(形容詞)" },
-      { id: "924", en: "title", ja: "題名，表題(名詞)" },
-      { id: "925", en: "resource", ja: "資源(名詞)" },
-      { id: "926", en: "police officer", ja: "警察官(名詞)" },
-      { id: "927", en: "ashamed", ja: "恥じて(形容詞)" },
-      { id: "928", en: "yet", ja: "もう，すでに(副詞)" },
-      { id: "929", en: "image", ja: "画像，印象(名詞)" },
-      { id: "930", en: "mouth", ja: "口(名詞)" },
-      { id: "931", en: "be familiar with", ja: "に馴染みがある(熟語)" },
-      { id: "932", en: "seem", ja: "～の様に見える(動詞)" },
-      { id: "933", en: "north", ja: "北(名詞)" },
-      { id: "934", en: "planet", ja: "惑星(名詞)" },
-      { id: "935", en: "even if", ja: "たとえ～だとしても(接続詞)" },
-      { id: "936", en: "ask 人 about", ja: "人に～について聞く(熟語)" },
-      { id: "937", en: "fortunately", ja: "幸運にも(副詞)" },
-      { id: "938", en: "exception", ja: "例外(名詞)" },
-      { id: "939", en: "cloth", ja: "服(名詞)" },
-      { id: "940", en: "certainly", ja: "確かに(副詞)" },
-      { id: "941", en: "for here", ja: "ここで食べる(熟語)" },
-      { id: "942", en: "surely", ja: "確かに(副詞)" },
-      { id: "943", en: "go to", ja: "へ行く(熟語)" },
-      { id: "944", en: "device", ja: "装置(名詞)" },
-      { id: "945", en: "arm", ja: "腕(名詞)" },
-      { id: "946", en: "be responsible for", ja: "に対して責任がある(熟語)" },
-      { id: "947", en: "treasure", ja: "宝物(名詞)" },
-      { id: "948", en: "just", ja: "たった今(副詞)" },
-      { id: "949", en: "at", ja: "～で(前置詞)" },
-      { id: "950", en: "up to", ja: "まで(熟語)" },
-      { id: "951", en: "at least", ja: "少なくとも(熟語)" },
-      { id: "952", en: "call back", ja: "折り返し電話する(熟語)" },
-      { id: "953", en: "die out", ja: "絶滅する(熟語)" },
-      { id: "954", en: "sit down", ja: "座る(熟語)" },
-      { id: "955", en: "look after", ja: "の面倒を見る(熟語)" },
-      { id: "956", en: "focus", ja: "集中する(動詞)" },
-      { id: "957", en: "show 人 around", ja: "人に見せて回る(熟語)" },
-      { id: "958", en: "respect", ja: "を尊敬する(動詞)" },
-      { id: "959", en: "somehow", ja: "何らかの形で(副詞)" },
-      { id: "960", en: "mind", ja: "精神(名詞)" },
-      { id: "961", en: "fire", ja: "火事(名詞)" },
-      { id: "962", en: "leave for", ja: "へ出かける(熟語)" },
-      { id: "963", en: "god", ja: "神(名詞)" },
-      { id: "964", en: "blind", ja: "目の見えない(形容詞)" },
-      { id: "965", en: "be aware of", ja: "に気づいている(熟語)" },
-      { id: "966", en: "take it back", ja: "取り戻す(熟語)" },
-      { id: "967", en: "forward", ja: "前へ(副詞)" },
-      { id: "968", en: "tear", ja: "涙(名詞)" },
-      { id: "969", en: "employee", ja: "従業員(名詞)" },
-      { id: "970", en: "raw", ja: "生の(形容詞)" },
-      { id: "971", en: "survival", ja: "存続，生き残ること(名詞)" },
-      { id: "972", en: "realize", ja: "実現する(動詞)" },
-      { id: "973", en: "nuclear power", ja: "原子力(名詞)" },
-      { id: "974", en: "road", ja: "道路(名詞)" },
-      { id: "975", en: "species", ja: "種(名詞)" },
-      { id: "976", en: "lawyer", ja: "弁護士(名詞)" },
-      { id: "977", en: "parking lot", ja: "駐車場(名詞)" },
-      { id: "978", en: "look at", ja: "を見る(熟語)" },
-      { id: "979", en: "learn a lot from", ja: "からたくさん学ぶ(熟語)" },
-      { id: "980", en: "pretty", ja: "かなり(副詞)" },
-      { id: "981", en: "success", ja: "成功(名詞)" },
-      { id: "982", en: "be full of", ja: "で一杯の(熟語)" },
-      { id: "983", en: "fire", ja: "を首にする，解雇する(動詞)" },
-      { id: "984", en: "try hard", ja: "一生懸命する(熟語)" },
-      { id: "985", en: "himself", ja: "彼自身を(代名詞)" },
-      { id: "986", en: "sleepy", ja: "眠い(形容詞)" },
-      { id: "987", en: "quite", ja: "かなり，相当(副詞)" },
-      { id: "988", en: "away", ja: "離れて(副詞)" },
-      { id: "989", en: "lie", ja: "横たわる(動詞)" },
-      { id: "990", en: "and so on", ja: "などなど(熟語)" },
-      { id: "991", en: "kind to", ja: "に対して親切な(熟語)" },
-      { id: "992", en: "scared", ja: "怖がって(形容詞)" },
-      { id: "993", en: "dislike", ja: "嫌う(動詞)" },
-      { id: "994", en: "ahead", ja: "前方に(副詞)" },
-      { id: "995", en: "excuse", ja: "許す(動詞)" },
-      { id: "996", en: "period", ja: "時代(名詞)" },
-      { id: "997", en: "Take care.", ja: "気をつけてね。" },
-      { id: "998", en: "Welcome back.", ja: "おかえりなさい。" },
-      { id: "999", en: "Long time no see.", ja: "久しぶり。" },
-      { id: "1000", en: "Here you are.", ja: "はい、どうぞ。" },
-      { id: "1001", en: "After you.", ja: "どうぞお先に。" },
-      { id: "1002", en: "No problem.", ja: "問題ないよ。" },
-      { id: "1003", en: "You're welcome.", ja: "どういたしまして。" },
-      { id: "1004", en: "That's all right.", ja: "大丈夫ですよ。" },
-      { id: "1005", en: "Never mind.", ja: "気にしないで。" },
-      { id: "1006", en: "It can't be helped.", ja: "しかたないよ。" },
-      { id: "1007", en: "I appreciate it.", ja: "感謝しています。" },
-      { id: "1008", en: "My pleasure.", ja: "よろこんで。" },
-      { id: "1009", en: "Sorry to bother you.", ja: "おじゃましてすみません。" },
-      { id: "1010", en: "Thank you anyway.", ja: "とにかくありがとう。" },
-      { id: "1011", en: "I owe you one.", ja: "借りができたよ。" },
-      { id: "1012", en: "Don't mention it.", ja: "いえいえ。" },
-      { id: "1013", en: "Please wait a minute.", ja: "ちょっと待ってください。" },
-      { id: "1014", en: "May I come in?", ja: "入ってもいいですか。" },
-      { id: "1015", en: "Can I ask a question?", ja: "質問してもいいですか。" },
-      { id: "1016", en: "Could you say that again?", ja: "もう一度言ってくれますか。" },
-      { id: "1017", en: "Please speak more slowly.", ja: "もっとゆっくり話してください。" },
-      { id: "1018", en: "Could you show me the way?", ja: "道を教えてくれますか。" },
-      { id: "1019", en: "Can I try it on?", ja: "試着してもいいですか。" },
-      { id: "1020", en: "Please call me later.", ja: "あとで電話してください。" },
-      { id: "1021", en: "Can you carry this for me?", ja: "これを運んでくれる？" },
-      { id: "1022", en: "May I borrow this book?", ja: "この本を借りてもいいですか。" },
-      { id: "1023", en: "Please turn off the light.", ja: "電気を消してください。" },
-      { id: "1024", en: "Shall I help you?", ja: "手伝いましょうか。" },
-      { id: "1025", en: "Let me help you.", ja: "手伝わせてください。" },
-      { id: "1026", en: "I'll carry it for you.", ja: "それをあなたのために運ぶよ。" },
-      { id: "1027", en: "I'll get the door.", ja: "ドアを開けるよ。" },
-      { id: "1028", en: "I'll call you back.", ja: "折り返し電話するよ。" },
-      { id: "1029", en: "Let me know.", ja: "教えてね。" },
-      { id: "1030", en: "Tell me if you need anything.", ja: "何か必要なら言ってね。" },
-      { id: "1031", en: "I'll be right back.", ja: "すぐ戻るよ。" },
-      { id: "1032", en: "Why don't we take a bus?", ja: "バスで行かない？" },
-      { id: "1033", en: "How about some coffee?", ja: "コーヒーはどう？" },
-      { id: "1034", en: "Shall we start now?", ja: "今始めようか。" },
-      { id: "1035", en: "Let's eat out tonight.", ja: "今夜は外食しよう。" },
-      { id: "1036", en: "Why don't you ask her?", ja: "彼女に聞いてみたら？" },
-      { id: "1037", en: "How about this one?", ja: "これはどう？" },
-      { id: "1038", en: "Let's take a break.", ja: "休憩しよう。" },
-      { id: "1039", en: "Shall we play tennis?", ja: "テニスをしようか。" },
-      { id: "1040", en: "Why don't we go swimming?", ja: "泳ぎに行かない？" },
-      { id: "1041", en: "Let's meet at noon.", ja: "正午に会おう。" },
-      { id: "1042", en: "How about next Sunday?", ja: "次の日曜日はどう？" },
-      { id: "1043", en: "Shall we watch a movie?", ja: "映画を見ようか。" },
-      { id: "1044", en: "Let's leave early.", ja: "早く出発しよう。" },
-      { id: "1045", en: "Why don't you come with us?", ja: "いっしょに来たら？" },
-      { id: "1046", en: "It's almost nine.", ja: "もうすぐ9時です。" },
-      { id: "1047", en: "I'm free this afternoon.", ja: "今日の午後は空いています。" },
-      { id: "1048", en: "I have plans tomorrow.", ja: "明日は予定があります。" },
-      { id: "1049", en: "I'm leaving on Monday.", ja: "月曜日に出発します。" },
-      { id: "1050", en: "The train leaves soon.", ja: "電車はもうすぐ出ます。" },
-      { id: "1051", en: "We should hurry.", ja: "急がないと。" },
-      { id: "1052", en: "I'm on my way.", ja: "今向かっています。" },
-      { id: "1053", en: "I'll be there at two.", ja: "2時に着きます。" },
-      { id: "1054", en: "It starts at ten.", ja: "10時に始まります。" },
-      { id: "1055", en: "What time should we meet?", ja: "何時に会いましょうか。" },
-      { id: "1056", en: "Are you busy now?", ja: "今忙しいですか。" },
-      { id: "1057", en: "I'm ready to go.", ja: "出かける準備ができました。" },
-      { id: "1058", en: "We have plenty of time.", ja: "時間はたっぷりあります。" },
-      { id: "1059", en: "I'm running late.", ja: "少し遅れています。" },
-      { id: "1060", en: "We had a test this morning.", ja: "今朝テストがありました。" },
-      { id: "1061", en: "I forgot my homework.", ja: "宿題を忘れました。" },
-      { id: "1062", en: "I need my dictionary.", ja: "辞書が必要です。" },
-      { id: "1063", en: "Please hand in your report.", ja: "レポートを提出してください。" },
-      { id: "1064", en: "I left school early.", ja: "早退しました。" },
-      { id: "1065", en: "We don't have practice today.", ja: "今日は練習がありません。" },
-      { id: "1066", en: "I have to study for the exam.", ja: "試験勉強をしなければなりません。" },
-      { id: "1067", en: "May I use the computer?", ja: "コンピューターを使ってもいいですか。" },
-      { id: "1068", en: "The class is over.", ja: "授業は終わりです。" },
-      { id: "1069", en: "Open your textbooks.", ja: "教科書を開いてください。" },
-      { id: "1070", en: "I don't know the answer.", ja: "答えがわかりません。" },
-      { id: "1071", en: "Could you help me with math?", ja: "数学を手伝ってくれますか。" },
-      { id: "1072", en: "I got a good score.", ja: "いい点を取りました。" },
-      { id: "1073", en: "I'm nervous about the test.", ja: "テストが心配です。" },
-      { id: "1074", en: "Can I help you?", ja: "いらっしゃいませ。何かお探しですか。" },
-      { id: "1075", en: "I'm just looking.", ja: "見ているだけです。" },
-      { id: "1076", en: "Do you have a larger size?", ja: "もっと大きいサイズはありますか。" },
-      { id: "1077", en: "Can I try this on?", ja: "これを試着してもいいですか。" },
-      { id: "1078", en: "I'll take it.", ja: "これにします。" },
-      { id: "1079", en: "Do you take credit cards?", ja: "クレジットカードは使えますか。" },
-      { id: "1080", en: "It's on sale today.", ja: "今日はセールです。" },
-      { id: "1081", en: "I'm looking for a gift.", ja: "プレゼントを探しています。" },
-      { id: "1082", en: "It's too expensive.", ja: "高すぎます。" },
-      { id: "1083", en: "Do you have it in blue?", ja: "青はありますか。" },
-      { id: "1084", en: "Can you wrap it, please?", ja: "包んでもらえますか。" },
-      { id: "1085", en: "I'm out of money.", ja: "お金が足りません。" },
-      { id: "1086", en: "Here is your change.", ja: "おつりです。" },
-      { id: "1087", en: "I'd like a salad, please.", ja: "サラダをお願いします。" },
-      { id: "1088", en: "Could I have some water?", ja: "お水をいただけますか。" },
-      { id: "1089", en: "May I see the menu?", ja: "メニューを見てもいいですか。" },
-      { id: "1090", en: "I'm ready to order.", ja: "注文の準備ができました。" },
-      { id: "1091", en: "No tomatoes, please.", ja: "トマトは抜いてください。" },
-      { id: "1092", en: "The food is delicious.", ja: "料理がおいしいです。" },
-      { id: "1093", en: "It's too spicy for me.", ja: "私には辛すぎます。" },
-      { id: "1094", en: "Could we have the bill?", ja: "お会計をお願いします。" },
-      { id: "1095", en: "I'll have the same.", ja: "同じものをお願いします。" },
-      { id: "1096", en: "Is breakfast included?", ja: "朝食はついていますか。" },
-      { id: "1097", en: "I'm full.", ja: "おなかいっぱいです。" },
-      { id: "1098", en: "Save some for me.", ja: "少し残しておいて。" },
-      { id: "1099", en: "This smells good.", ja: "いいにおいがします。" },
-      { id: "1100", en: "I don't eat meat.", ja: "肉は食べません。" },
-      { id: "1101", en: "I'm going to the station.", ja: "駅に行きます。" },
-      { id: "1102", en: "Which bus should I take?", ja: "どのバスに乗ればいいですか。" },
-      { id: "1103", en: "We missed the train.", ja: "電車に乗り遅れました。" },
-      { id: "1104", en: "This seat is taken.", ja: "この席は空いていません。" },
-      { id: "1105", en: "How long does it take?", ja: "どのくらいかかりますか。" },
-      { id: "1106", en: "It's a ten-minute walk.", ja: "歩いて10分です。" },
-      { id: "1107", en: "Turn left at the corner.", ja: "角を左に曲がってください。" },
-      { id: "1108", en: "Go straight ahead.", ja: "まっすぐ進んでください。" },
-      { id: "1109", en: "Is this the right way?", ja: "この道で合っていますか。" },
-      { id: "1110", en: "I got off at the wrong station.", ja: "間違った駅で降りました。" },
-      { id: "1111", en: "Please tell me when to get off.", ja: "降りるときに教えてください。" },
-      { id: "1112", en: "My passport is missing.", ja: "パスポートが見当たりません。" },
-      { id: "1113", en: "It's getting cold.", ja: "寒くなってきました。" },
-      { id: "1114", en: "Take an umbrella with you.", ja: "傘を持って行って。" },
-      { id: "1115", en: "Spring is my favorite season.", ja: "春がいちばん好きな季節です。" },
-      { id: "1116", en: "It's too cold to go out.", ja: "外に出るには寒すぎます。" },
-      { id: "1117", en: "Summer vacation starts soon.", ja: "もうすぐ夏休みです。" },
-      { id: "1118", en: "I love autumn leaves.", ja: "紅葉が大好きです。。" },
-      { id: "1119", en: "The sun is coming out.", ja: "日がさしてきました。" },
-      { id: "1120", en: "How are you feeling?", ja: "気分はどうですか。" },
-      { id: "1121", en: "I have a fever.", ja: "熱があります。" },
-      { id: "1122", en: "I have a headache.", ja: "頭が痛いです。" },
-      { id: "1123", en: "I caught a cold.", ja: "風邪をひきました。" },
-      { id: "1124", en: "You should get some rest.", ja: "少し休んだほうがいいよ。" },
-      { id: "1125", en: "Take this medicine.", ja: "この薬を飲んでください。" },
-      { id: "1126", en: "I feel much better now.", ja: "もうずっとよくなりました。" },
-      { id: "1127", en: "My stomach hurts.", ja: "おなかが痛いです。" },
-      { id: "1128", en: "I need to see a doctor.", ja: "医者に診てもらう必要があります。" },
-      { id: "1129", en: "Don't stay up late.", ja: "夜更かししないで。" },
-      { id: "1130", en: "Drink plenty of water.", ja: "水をたくさん飲んで。" },
-      { id: "1131", en: "I twisted my ankle.", ja: "足首をひねりました。" },
-      { id: "1132", en: "I'm a little tired.", ja: "少し疲れています。" },
-      { id: "1133", en: "Get well soon.", ja: "早くよくなってね。" },
-      { id: "1134", en: "I like this one.", ja: "こちらが好きです。" },
-      { id: "1135", en: "I don't like spicy food.", ja: "辛い食べ物は好きではありません。" },
-      { id: "1136", en: "It sounds great.", ja: "それはよさそうです。" },
-      { id: "1137", en: "That's a good idea.", ja: "それはいい考えです。" },
-      { id: "1138", en: "I agree with you.", ja: "あなたに賛成です。" },
-      { id: "1139", en: "I prefer tea to coffee.", ja: "コーヒーよりお茶のほうが好きです。" },
-      { id: "1140", en: "This is my favorite song.", ja: "これは私のいちばん好きな歌です。" },
-      { id: "1141", en: "I'm interested in art.", ja: "美術に興味があります。" },
-      { id: "1142", en: "I enjoy reading.", ja: "読書を楽しんでいます。" },
-      { id: "1143", en: "It looks delicious.", ja: "おいしそうです。" },
-      { id: "1144", en: "That's too difficult for me.", ja: "それは私には難しすぎます。" },
-      { id: "1145", en: "I practice every day.", ja: "毎日練習します。" },
-      { id: "1146", en: "I'm on the school team.", ja: "学校のチームに入っています。" },
-      { id: "1147", en: "The game starts soon.", ja: "試合はもうすぐ始まります。" },
-      { id: "1148", en: "We won the match.", ja: "試合に勝ちました。" },
-      { id: "1149", en: "We lost by one point.", ja: "1点差で負けました。" },
-      { id: "1150", en: "I'm a little worried.", ja: "少し不安です。" },
-      { id: "1151", en: "Let's cheer for them.", ja: "みんなを応援しよう。" },
-      { id: "1152", en: "I didn't practice much.", ja: "あまり練習しませんでした。" },
-      { id: "1153", en: "That was a great game.", ja: "すばらしい試合でした。" },
-      { id: "1154", en: "Please leave a message.", ja: "伝言を残してください。" },
-      { id: "1155", en: "Can I speak to Ken?", ja: "ケンさんをお願いします。" },
-      { id: "1156", en: "Hold on, please.", ja: "少々お待ちください。" },
-      { id: "1157", en: "The line is busy.", ja: "話し中です。" },
-      { id: "1158", en: "I'll text you later.", ja: "あとでメッセージするね。" },
-      { id: "1159", en: "My phone is out of battery.", ja: "携帯の電池が切れました。" },
-      { id: "1160", en: "Can you hear me?", ja: "聞こえますか。" },
-      { id: "1161", en: "The connection is bad.", ja: "電波が悪いです。" },
-      { id: "1162", en: "I'll send you the photo.", ja: "写真を送るね。" },
-      { id: "1163", en: "Check your email, please.", ja: "メールを確認してください。" },
-      { id: "1164", en: "I got your message.", ja: "メッセージを受け取りました。" },
-      { id: "1165", en: "Sorry, wrong number.", ja: "すみません、番号を間違えました。" },
-      { id: "1166", en: "Please call me back.", ja: "折り返し電話してください。" },
-      { id: "1167", en: "I can't find my key.", ja: "かぎが見つかりません。" },
-      { id: "1168", en: "I lost my wallet.", ja: "財布をなくしました。" },
-      { id: "1169", en: "My bike is broken.", ja: "自転車がこわれています。" },
-      { id: "1170", en: "I forgot my ticket.", ja: "切符を忘れました。" },
-      { id: "1171", en: "I left it at home.", ja: "それを家に置いてきました。" },
-      { id: "1172", en: "Something is wrong.", ja: "何かおかしいです。" },
-      { id: "1173", en: "My shoes are wet.", ja: "靴がぬれています。" },
-      { id: "1174", en: "I made a mistake.", ja: "まちがえました。" },
-      { id: "1175", en: "You did your best.", ja: "よくがんばったね。" },
-      { id: "1176", en: "I'm proud of you.", ja: "あなたを誇りに思うよ。" },
-      { id: "1177", en: "That happens sometimes.", ja: "そういうこともあるよ。" },
-      { id: "1178", en: "Cheer up.", ja: "元気を出して。" },
-      { id: "1179", en: "You'll be fine.", ja: "きっとうまくいくよ。" },
-      { id: "1180", en: "Take your time.", ja: "ゆっくりでいいよ。" },
-      { id: "1181", en: "Keep trying.", ja: "あきらめずに続けて。" },
-      { id: "1182", en: "That's too bad.", ja: "それは残念だね。" },
-      { id: "1183", en: "Congratulations.", ja: "おめでとう。" },
-      { id: "1184", en: "I'm happy for you.", ja: "あなたのことがうれしいよ。" },
-      { id: "1185", en: "What a surprise.", ja: "びっくりした。" },
-      { id: "1186", en: "Sounds fun.", ja: "楽しそう。" },
-      { id: "1187", en: "I'm glad to hear that.", ja: "それを聞いてうれしいです。" },
-      { id: "1188", en: "I'm home.", ja: "ただいま。" },
-      { id: "1189", en: "Dinner is ready.", ja: "ごはんができたよ。" },
-      { id: "1190", en: "Please set the table.", ja: "テーブルを準備してください。" },
-      { id: "1191", en: "Don't forget to lock the door.", ja: "ドアのかぎを忘れないで。" },
-      { id: "1192", en: "Can you take out the trash?", ja: "ごみを出してくれる？" },
-      { id: "1193", en: "I'm doing the laundry.", ja: "洗濯をしています。" },
-      { id: "1194", en: "Please clean your room.", ja: "部屋を片づけてください。" },
-      { id: "1195", en: "The room is dark.", ja: "部屋が暗いです。" },
-      { id: "1196", en: "Turn on the light, please.", ja: "電気をつけてください。" },
-      { id: "1197", en: "Let's meet in front of the station.", ja: "駅前で会いましょう。" },
-      { id: "1198", en: "I'll be back by six.", ja: "6時までに戻ります。" },
-      { id: "1199", en: "I have an appointment.", ja: "約束があります。" },
-      { id: "1200", en: "I need to make a copy.", ja: "コピーを取る必要があります。" },
-      { id: "1201", en: "I was stuck in traffic.", ja: "渋滞にはまっていました。" },
-      { id: "1202", en: "It's just around the corner.", ja: "すぐそこの角です。" },
-      { id: "1203", en: "I'm on my lunch break.", ja: "昼休み中です。" },
-      { id: "1204", en: "I want to go again.", ja: "また行きたいです。" },
-      { id: "1205", en: "This is my first time.", ja: "これが初めてです。" },
-      { id: "1206", en: "This is my second time.", ja: "これで2回目です。" },
-      { id: "1207", en: "I'm looking forward to it.", ja: "楽しみにしています。" },
-      { id: "1208", en: "There's a big lake there.", ja: "そこには大きな湖があります。" },
-      { id: "1209", en: "It's too crowded.", ja: "人が多すぎます。" },
-      { id: "1210", en: "It's my piece of cake.", ja: "それは私のケーキです。" }
-    ]
-    },
-    {
-  folderName: 'NewFolder',
-  words: [
-    { id: '1', en: 'as a result', ja: '結果として，その結果(接続詞)' },
-    { id: '2', en: 'look up', ja: 'を調べる(熟語)' },
-    { id: '3', en: 'available', ja: '利用できる，使用可能な(形容詞)' },
-    { id: '4', en: 'at first', ja: '最初は，初めに(熟語)' },
-    { id: '5', en: 'in the past', ja: '過去に(熟語)' },
-    { id: '6', en: 'nowadays', ja: '最近，近頃(副詞)' },
-    { id: '7', en: 'information', ja: '情報(名詞)' },
-    { id: '8', en: 'drop by', ja: 'ちょっと立ち寄る' },
-    { id: '9', en: 'gain', ja: '得る，獲得する(動詞)' },
-    { id: '10', en: 'traditional', ja: '伝統的な，慣習的な(形容詞)' },
-    { id: '11', en: 'quality', ja: '質，特性(名詞)' },
-    { id: '12', en: 'improve', ja: 'を改善する，改良する(動詞)' },
-    { id: '13', en: 'however', ja: 'しかしながら，どんなに～でも(副詞)' },
-    { id: '14', en: 'collect', ja: '集める，収集する(動詞)' },
-    { id: '15', en: 'extra', ja: '余分の，特別の(形容詞)' },
-    { id: '16', en: 'clothing', ja: '衣料品，服(名詞)' },
-    { id: '17', en: 'comfortable', ja: '心地の良い，快適な(形容詞)' },
-    { id: '18', en: 'disappoint', ja: 'がっかりさせる，失望させる(動詞)' },
-    { id: '19', en: 'instead', ja: '代わりに，その代わり(副詞)' },
-    { id: '20', en: 'originally', ja: 'はじめは，元々は(副詞)' },
-    { id: '21', en: 'take part in', ja: 'に参加する，参与する(熟語)' },
-    { id: '22', en: 'dress up', ja: '着飾る(熟語)' },
-    { id: '23', en: 'certainly', ja: '確かに，間違いなく(副詞)' },
-    { id: '24', en: 'find out', ja: '見つけ出す(熟語)' },
-    { id: '25', en: 'search for', ja: 'を探索する(熟語)' },
-    { id: '26', en: 'come up with', ja: 'を思いつく，を考え出す(熟語)' },
-    { id: '27', en: 'company', ja: '会社(名詞)' },
-    { id: '28', en: 'details', ja: '詳細，詳しく説明する(名詞)' },
-    { id: '29', en: 'melt', ja: '溶ける，を溶かす(動詞)' },
-    { id: '30', en: 'direction', ja: '方向，方角(名詞)' },
-    { id: '31', en: 'injury', ja: '怪我，負傷(名詞)' },
-    { id: '32', en: 'silence', ja: '沈黙(名詞)' },
-    { id: '33', en: 'tight', ja: '狭い，締まった(形容詞)' },
-    { id: '34', en: 'protect', ja: 'を守る，保護する(動詞)' },
-    { id: '35', en: 'sharp', ja: '鋭い，先鋭的な(形容詞)' },
-    { id: '36', en: 'behind', ja: '背後に，後方に(副詞)' },
-    { id: '37', en: 'bother', ja: '面倒，迷惑をかける(動詞)' },
-    { id: '38', en: 'emergency', ja: '緊急，急ぎ(名詞)' },
-    { id: '39', en: 'waste', ja: 'を浪費する/浪費，廃棄物(名詞)' },
-    { id: '40', en: 'amount', ja: '量，額(名詞)' },
-    { id: '41', en: 'advantage', ja: '有利，利点(名詞)' },
-    { id: '42', en: 'object', ja: '物体，実体(名詞)' },
-    { id: '43', en: 'add', ja: '足し算する，合計する(動詞)' },
-    { id: '44', en: 'surface', ja: '表面，水面(名詞)' },
-    { id: '45', en: 'destroy', ja: 'を破壊する，を壊す(動詞)' },
-    { id: '46', en: 'knowledge', ja: '知識，学識(名詞)' },
-    { id: '47', en: 'continue', ja: 'をし続ける，続ける(動詞)' },
-    { id: '48', en: 'immediately', ja: '即座に，直ちに(副詞)' },
-    { id: '49', en: 'correct', ja: '正確な/を訂正する(形容詞)' },
-    { id: '50', en: 'government', ja: '政府，行政府，内閣(名詞)' },
-    { id: '51', en: 'raise', ja: 'を上げる，持ち上げる(動詞)' },
-    { id: '52', en: 'hurt', ja: 'を傷つける(動詞)' },
-    { id: '53', en: 'experiment', ja: '実験，試み(名詞)' },
-    { id: '54', en: 'fail', ja: '失敗する，うまくいかない(動詞)' },
-    { id: '55', en: 'material', ja: '材料，原料(名詞)' },
-    { id: '56', en: 'recently', ja: '最近，このごろ(副詞)' },
-    { id: '57', en: 'spread', ja: 'を広げる，広がる(動詞)' },
-    { id: '58', en: 'traffic', ja: '交通，運輸(名詞)' },
-    { id: '59', en: 'modern', ja: '現代的な，現代の(形容詞)' },
-    { id: '60', en: 'reduce', ja: 'を減らす，縮小する(動詞)' },
-    { id: '61', en: 'distance', ja: '距離，間隔(名詞)' },
-    { id: '62', en: 'opportunity', ja: '機会，好機(名詞)' },
-    { id: '63', en: 'activity', ja: '活動(名詞)' },
-    { id: '64', en: 'abroad', ja: '外国で，外国へ(副詞)' },
-    { id: '65', en: 'prefer', ja: 'より好む，好む(動詞)' },
-    { id: '66', en: 'mention', ja: '言及する，参照する(動詞)' },
-    { id: '67', en: 'although', ja: 'だけれども，しかし(接続詞)' },
-    { id: '68', en: 'climate', ja: '気候，天候(名詞)' },
-    { id: '69', en: 'condition', ja: '状態，条件，情勢(名詞)' },
-    { id: '70', en: 'impression', ja: '印象，感じ(名詞)' },
-    { id: '71', en: 'item', ja: '項目，要点(名詞)' },
-    { id: '72', en: 'profit', ja: '利益，もうけ(名詞)' },
-    { id: '73', en: 'survey', ja: '調査/を見渡す(名詞)' },
-    { id: '74', en: 'sink', ja: '沈む，沈没する(動詞)' },
-    { id: '75', en: 'illness', ja: '病気，疾患(名詞)' },
-    { id: '76', en: 'flavor', ja: '風味，味(名詞)' },
-    { id: '77', en: 'expert', ja: '専門家(名詞)' },
-    { id: '78', en: 'borrow', ja: 'を借りる，を借用する(動詞)' },
-    { id: '79', en: 'notice', ja: '気づく/通知(動詞)' },
-    { id: '80', en: 'quit', ja: 'やめる，中止する(動詞)' },
-    { id: '81', en: 'silly', ja: '馬鹿な，愚かな(形容詞)' },
-    { id: '82', en: 'wealthy', ja: '裕福な，豊かな(形容詞)' },
-    { id: '83', en: 'behave', ja: '振る舞う，立ち振舞う(動詞)' },
-    { id: '84', en: 'decrease', ja: '減少する，を減らす/減少(動詞)' },
-    { id: '85', en: 'divide', ja: 'を分割する，分ける(動詞)' },
-    { id: '86', en: 'ignore', ja: 'を無視する，見逃す(動詞)' },
-    { id: '87', en: 'judge', ja: 'を判断する/裁判官(動詞)' },
-    { id: '88', en: 'organize', ja: 'を組織する，を編成する(動詞)' },
-    { id: '89', en: 'overcome', ja: 'を克服する，乗り越える(動詞)' },
-    { id: '90', en: 'narrow', ja: '幅が狭い，細い(形容詞)' },
-    { id: '91', en: 'attract', ja: '引きつける，魅了する(動詞)' },
-    { id: '92', en: 'breathe', ja: '呼吸をする(動詞)' },
-    { id: '93', en: 'confuse', ja: 'を混乱させる，区別がつかない(動詞)' },
-    { id: '94', en: 'reserve', ja: 'を取っておく，を保管する(動詞)' },
-    { id: '95', en: 'asleep', ja: '眠っている，寝ている(形容詞)' },
-    { id: '96', en: 'nervous', ja: '神経質な，びくびくして(形容詞)' },
-    { id: '97', en: 'discuss', ja: 'について議論する，検討する(動詞)' },
-    { id: '98', en: 'rarely', ja: 'めったに～ない，稀に(副詞)' },
-    { id: '99', en: 'thanks to', ja: 'のおかげで，感謝して(熟語)' },
-    { id: '100', en: 'anyway', ja: 'ともかく(副詞)' },
-    { id: '101', en: 'by the time', ja: 'するまでには(接続詞)' },
-    { id: '102', en: 'in particular', ja: '特に，とりわけ(熟語)' },
-    { id: '103', en: 'take over', ja: 'を引き継ぐ' },
-    { id: '104', en: 'in addition', ja: '追加として，さらに(熟語)' },
-    { id: '105', en: 'be filled with', ja: 'で満たされている，充実している(熟語)' },
-    { id: '106', en: 'even though', ja: '～だけれども，～であるのに(接続詞)' },
-    { id: '107', en: 'refrigerator', ja: '冷蔵庫(名詞)' },
-    { id: '108', en: 'and so on', ja: 'などなど(熟語)' },
-    { id: '109', en: 'at most', ja: '多くとも，せいぜい(熟語)' },
-    { id: '110', en: 'do me a favor', ja: 'お願いをする(熟語)' },
-    { id: '111', en: 'get along with', ja: 'とうまくやっていく(熟語)' },
-    { id: '112', en: 'get back', ja: '取り戻す(熟語)' },
-    { id: '113', en: 'in spite of', ja: 'にも関わらず，けれども(熟語)' },
-    { id: '114', en: 'keep in mind', ja: 'を心に留めておく(熟語)' },
-    { id: '115', en: 'on the way to', ja: '道の途中で(熟語)' },
-    { id: '116', en: 'put down', ja: '置く(熟語)' },
-    { id: '117', en: 'rely on', ja: 'に頼る，を当てにする(熟語)' },
-    { id: '118', en: 'run out of', ja: 'を使い果たす，使い尽くす(熟語)' },
-    { id: '119', en: 'so far', ja: 'これまでは(熟語)' },
-    { id: '120', en: 'appeal to', ja: 'に訴える(熟語)' },
-    { id: '121', en: 'as well', ja: '同様に，その上(熟語)' },
-    { id: '122', en: 'be good at', ja: '～が上手である(熟語)' },
-    { id: '123', en: 'be responsible for', ja: 'に対して責任がある(熟語)' },
-    { id: '124', en: 'call off', ja: 'を中止する(熟語)' },
-    { id: '125', en: 'in case', ja: '万一に備えて，予防するために(接続詞)' },
-    { id: '126', en: 'on average', ja: '平均して，平均値で(熟語)' },
-    { id: '127', en: 'on foot', ja: '歩いて(熟語)' },
-    { id: '128', en: 'out of order', ja: '故障して(熟語)' },
-    { id: '129', en: 'on purpose', ja: '故意に，わざと(熟語)' },
-    { id: '130', en: 'stay away from', ja: '離れている，距離がある(熟語)' },
-    { id: '131', en: 'suffer from', ja: 'で苦しむ，悩まされる(熟語)' },
-    { id: '132', en: 'apologize', ja: '謝る，謝罪する(動詞)' },
-    { id: '133', en: 'succeed in', ja: 'に成功する(熟語)' },
-    { id: '134', en: 'after all', ja: '結局，最終的に(熟語)' },
-    { id: '135', en: 'be popular with', ja: 'に人気がある(熟語)' },
-    { id: '136', en: 'be sick of', ja: 'にうんざりしている(熟語)' },
-    { id: '137', en: 'be unlikely to', ja: '起こりそうにない(熟語)' },
-    { id: '138', en: 'catch up with', ja: 'に追いつく，付いていく(熟語)' },
-    { id: '139', en: 'differ from', ja: 'とは違って，との違い(熟語)' },
-    { id: '140', en: 'in advance', ja: '前もって，事前に(熟語)' },
-    { id: '141', en: 'in a hurry', ja: '急いで(熟語)' },
-    { id: '142', en: 'participate in', ja: 'に参加する，に加わる(熟語)' },
-    { id: '143', en: 'sooner or later', ja: '遅かれ早かれ(熟語)' },
-    { id: '144', en: 'try on', ja: '試着する(熟語)' },
-    { id: '145', en: 'similar to', ja: 'に似ている，類似している(熟語)' },
-    { id: '146', en: 'show off', ja: '見せびらかす(熟語)' },
-    { id: '147', en: 'turn down', ja: '断る(熟語)' },
-    { id: '148', en: 'fill out', ja: '書き込む，記入する(熟語)' },
-    { id: '149', en: 'mostly', ja: '主に，ほとんど(副詞)' },
-    { id: '150', en: 'dig', ja: 'を掘る，採掘する(動詞)' },
-    { id: '151', en: 'muscle', ja: '筋肉，筋力(名詞)' },
-    { id: '152', en: 'bite', ja: 'を噛む，かじる(動詞)' },
-    { id: '153', en: 'treat', ja: 'を扱う，待遇する(動詞)' },
-    { id: '154', en: 'rather', ja: 'むしろ，どちらかといえば(副詞)' },
-    { id: '155', en: 'apparently', ja: '見たらわかる、一見すると(副詞)' },
-    { id: '156', en: 'spend', ja: 'を費やす，使う(動詞)' },
-    { id: '157', en: 'discover', ja: 'を発見する，見つける(動詞)' },
-    { id: '158', en: 'discovery', ja: '発見，見つけること(名詞)' },
-    { id: '159', en: 'arrival', ja: '到着，到達(名詞)' },
-    { id: '160', en: 'degree', ja: '程度，度(名詞)' },
-    { id: '161', en: 'achieve', ja: 'を達成する，到達する(動詞)' },
-    { id: '162', en: 'attitude', ja: '態度，姿勢(名詞)' },
-    { id: '163', en: 'explain', ja: 'を説明する，を解説する(動詞)' },
-    { id: '164', en: 'establish', ja: 'を設立する，創設する(動詞)' },
-    { id: '165', en: 'tax', ja: '税金，税収(名詞)' },
-    { id: '166', en: 'belief', ja: '信念，信条(名詞)' },
-    { id: '167', en: 'demonstrate', ja: '実証する，証明する(動詞)' },
-    { id: '168', en: 'ancient', ja: '古代の，大昔の(形容詞)' },
-    { id: '169', en: 'formal', ja: '正式な，公式の(形容詞)' },
-    { id: '170', en: 'allow', ja: 'を許可する，許す(動詞)' },
-    { id: '171', en: 'article', ja: '記事，論文(名詞)' },
-    { id: '172', en: 'contain', ja: 'を含む，が入っている(動詞)' },
-    { id: '173', en: 'temperature', ja: '温度，気温(名詞)' },
-    { id: '174', en: 'common', ja: '共通の，共同の(形容詞)' },
-    { id: '175', en: 'mean', ja: 'を意味する，を示す(動詞)' },
-    { id: '176', en: 'hardly', ja: 'ほとんどない，少ない(副詞)' },
-    { id: '177', en: 'unable', ja: 'できない，不能である(形容詞)' },
-    { id: '178', en: 'argument', ja: '議論，口論(名詞)' },
-    { id: '179', en: 'ancestor', ja: '祖先，先祖(名詞)' },
-    { id: '180', en: 'capital', ja: '資本，首都(名詞)' },
-    { id: '181', en: 'disaster', ja: '災害，災難(名詞)' },
-    { id: '182', en: 'height', ja: '高さ，高度(名詞)' },
-    { id: '183', en: 'ideal', ja: '理想，目指すべき状態(名詞)' },
-    { id: '184', en: 'popularity', ja: '人気，流行(名詞)' },
-    { id: '185', en: 'blow', ja: '吹く，吹き飛ばす(動詞)' },
-    { id: '186', en: 'decision', ja: '決定，結論(名詞)' },
-    { id: '187', en: 'agent', ja: '代理人，代表者(名詞)' },
-    { id: '188', en: 'praise', ja: 'をほめる/賞賛(動詞)' },
-    { id: '189', en: 'punish', ja: 'を罰する，懲らしめる(動詞)' },
-    { id: '190', en: 'chemical', ja: '化学物質/化学の(名詞)' },
-    { id: '191', en: 'negative', ja: '否定の，拒否(形容詞)' },
-    { id: '192', en: 'consist', ja: '成り立つ，構成する(動詞)' },
-    { id: '193', en: 'criticize', ja: 'を批評する，を評価する(動詞)' },
-    { id: '194', en: 'import', ja: '輸入する，直輸入する(動詞)' },
-    { id: '195', en: 'promote', ja: 'を促進する，を推進する(動詞)' },
-    { id: '196', en: 'recover', ja: '回復する，元に戻る(動詞)' },
-    { id: '197', en: 'release', ja: '解き放つ，解放する(動詞)' },
-    { id: '198', en: 'translate', ja: 'を翻訳する，通訳する(動詞)' },
-    { id: '199', en: 'warn', ja: '警告する，警戒する(動詞)' },
-    { id: '200', en: 'childhood', ja: '子供時代，幼少期(名詞)' },
-    { id: '201', en: 'thought', ja: '考えること，意見(名詞)' },
-    { id: '202', en: 'accomplish', ja: 'を成し遂げる，完成する(動詞)' },
-    { id: '203', en: 'combine', ja: 'を結合させる，合同する(動詞)' },
-    { id: '204', en: 'complain', ja: '不満を言う，不平を言う(動詞)' },
-    { id: '205', en: 'favorite', ja: '特に好きな，お気に入りの(形容詞)' },
-    { id: '206', en: 'responsible', ja: '責任がある，責任が伴う(形容詞)' },
-    { id: '207', en: 'tiny', ja: 'ごく小さい，微小な(形容詞)' },
-    { id: '208', en: 'look down on', ja: 'を下に見る(熟語)' },
-    { id: '209', en: 'get rid of', ja: 'を取り除く，除去する(熟語)' },
-    { id: '210', en: 'instead of', ja: 'の代わりに，代わって(熟語)' },
-    { id: '211', en: 'plenty of', ja: 'たくさんの(熟語)' },
-    { id: '212', en: 'stomach', ja: '腹(名詞)' },
-    { id: '213', en: 'vision', ja: '未来像(名詞)' },
-    { id: '214', en: 'expansion', ja: '拡張，拡大，増幅(名詞)' },
-    { id: '215', en: 'occur', ja: '発生する，起こる(動詞)' },
-    { id: '216', en: 'indeed', ja: '実に，全く(副詞)' },
-    { id: '217', en: 'solution', ja: '解決法，解明(名詞)' },
-    { id: '218', en: 'ease', ja: '容易さ，気楽さ(名詞)' },
-    { id: '219', en: 'elect', ja: 'を選出する(動詞)' },
-    { id: '220', en: 'unit', ja: '単位，員数(名詞)' },
-    { id: '221', en: 'fact', ja: '事実(名詞)' },
-    { id: '222', en: 'educational', ja: '教育の，教授の(形容詞)' },
-    { id: '223', en: 'manner', ja: 'やり方，方法(名詞)' },
-    { id: '224', en: 'suffering', ja: '苦しみ，悩み(名詞)' },
-    { id: '225', en: 'crucial', ja: '重要な，決定的な(形容詞)' },
-    { id: '226', en: 'tear', ja: 'を引き裂く，を裂く(動詞)' },
-    { id: '227', en: 'govern', ja: '統治する，支配する(動詞)' },
-    { id: '228', en: 'enforcement', ja: '執行，実施(名詞)' },
-    { id: '229', en: 'brain', ja: '頭脳，脳(名詞)' },
-    { id: '230', en: 'talented', ja: '才能のある(形容詞)' },
-    { id: '231', en: 'research', ja: '研究/研究する(名詞)' },
-    { id: '232', en: 'firm', ja: 'しっかりした，堅い(形容詞)' },
-    { id: '233', en: 'community', ja: '共同社会，共同体(名詞)' },
-    { id: '234', en: 'force', ja: '力，勢い(名詞)' },
-    { id: '235', en: 'past', ja: '過去の，終わった(形容詞)' },
-    { id: '236', en: 'right', ja: '正しい，正確な(形容詞)' },
-    { id: '237', en: 'impressive', ja: '印象的な，鮮烈な(形容詞)' },
-    { id: '238', en: 'salary', ja: '給与，報酬(名詞)' },
-    { id: '239', en: 'deal', ja: 'を扱う，分配する(動詞)' },
-    { id: '240', en: 'prompt', ja: '即座の，直ちに(形容詞)' },
-    { id: '241', en: 'let A do', ja: 'Aにさせる(熟語)' },
-    { id: '242', en: 'vote', ja: '投票する/投票権(動詞)' },
-    { id: '243', en: 'president', ja: '社長，大統領(名詞)' },
-    { id: '244', en: 'range', ja: '範囲，幅(名詞)' },
-    { id: '245', en: 'vital', ja: '極めて重要な，生命の(形容詞)' },
-    { id: '246', en: 'estate', ja: '財産，資産(名詞)' },
-    { id: '247', en: 'responsibility', ja: '責任，義務(名詞)' },
-    { id: '248', en: 'unknown', ja: '未知の，未明らかな(形容詞)' },
-    { id: '249', en: 'grant', ja: '給付金(名詞)' },
-    { id: '250', en: 'perceive', ja: '知覚する，感じる(動詞)' },
-    { id: '251', en: 'especially', ja: '特に，格段に(副詞)' },
-    { id: '252', en: 'client', ja: '顧客(名詞)' },
-    { id: '253', en: 'mysterious', ja: '不可解な，不思議な(形容詞)' },
-    { id: '254', en: 'steel', ja: '鋼鉄，鉄(名詞)' },
-    { id: '255', en: 'concept', ja: '概念，観念(名詞)' },
-    { id: '256', en: 'nevertheless', ja: 'にも関わらず，けれども(副詞)' },
-    { id: '257', en: 'attribute', ja: 'に帰する(動詞)' },
-    { id: '258', en: 'prevent', ja: 'を妨げる，予防する(動詞)' },
-    { id: '259', en: 'manufacturer', ja: '製造元，製造業者(名詞)' },
-    { id: '260', en: 'effect', ja: '効果，影響，結果(名詞)' },
-    { id: '261', en: 'million', ja: '100万(名詞)' },
-    { id: '262', en: 'encounter', ja: '遭遇する，出会う(動詞)' },
-    { id: '263', en: 'accuse', ja: '告発する，告発(動詞)' },
-    { id: '264', en: 'briefly', ja: '簡単に，手短に(副詞)' },
-    { id: '265', en: 'so-called', ja: 'いわゆる，通称(形容詞)' },
-    { id: '266', en: 'global', ja: '地球の，世界の(形容詞)' },
-    { id: '267', en: 'according to', ja: 'によると，との情報によれば(熟語)' },
-    { id: '268', en: 'lack', ja: '不足，欠乏(名詞)' },
-    { id: '269', en: 'essay', ja: '論文，随筆(名詞)' },
-    { id: '270', en: 'approach', ja: 'に近づく，接近する(動詞)' },
-    { id: '271', en: 'bear', ja: '我慢する，を圧迫する(動詞)' },
-    { id: '272', en: 'natural', ja: '当然の，自然の(形容詞)' },
-    { id: '273', en: 'administration', ja: '機関，運営(名詞)' },
-    { id: '274', en: 'audience', ja: '聴衆，観客(名詞)' },
-    { id: '275', en: 'production', ja: '生産，製造(名詞)' },
-    { id: '276', en: 'qualify', ja: 'に資格を与える，認可する(動詞)' },
-    { id: '277', en: 'intention', ja: '意図，目的(名詞)' },
-    { id: '278', en: 'previously', ja: '以前は，前もって(副詞)' },
-    { id: '279', en: 'language', ja: '言語，言葉(名詞)' },
-    { id: '280', en: 'fee', ja: '料金，手数料(名詞)' },
-    { id: '281', en: 'nor', ja: 'もない(接続詞)' },
-    { id: '282', en: 'negotiation', ja: '交渉，話し合い(名詞)' },
-    { id: '283', en: 'automobile', ja: '自動車，乗用車(名詞)' },
-    { id: '284', en: 'dust', ja: 'ほこり，塵(名詞)' },
-    { id: '285', en: 'extremely', ja: '極端に，過度に(副詞)' },
-    { id: '286', en: 'echo', ja: 'こだま，反響(名詞)' },
-    { id: '287', en: 'detailed', ja: '詳細の，具体的な(形容詞)' },
-    { id: '288', en: 'maximum', ja: '最大，最大の(形容詞)' },
-    { id: '289', en: 'pan', ja: 'フライパン(名詞)' },
-    { id: '290', en: 'improvement', ja: '改善，改良(名詞)' },
-    { id: '291', en: 'genius', ja: '天才，才人(名詞)' },
-    { id: '292', en: 'credit', ja: '信用，信頼(名詞)' },
-    { id: '293', en: 'debt', ja: '借金，負債(名詞)' },
-    { id: '294', en: 'resource', ja: '資源，資産(名詞)' },
-    { id: '295', en: 'therapy', ja: '治療，療法(名詞)' },
-    { id: '296', en: 'glance', ja: '一目見る/一目(名詞)' },
-    { id: '297', en: 'storage', ja: '保管場所，倉庫(名詞)' },
-    { id: '298', en: 'academic', ja: '学術の，大学の(形容詞)' },
-    { id: '299', en: 'permit', ja: 'を許可する，を認める(動詞)' },
-    { id: '300', en: 'concern', ja: '心配する，に関係する(動詞)' },
-    { id: '301', en: 'strain', ja: '張る，伸ばす(動詞)' },
-    { id: '302', en: 'role', ja: '役割，職務(名詞)' },
-    { id: '303', en: 'nowhere', ja: 'どこにも，どこにでも(副詞)' },
-    { id: '304', en: 'recent', ja: '最近の，新しい(形容詞)' },
-    { id: '305', en: 'mate', ja: '友達，仲間(名詞)' },
-    { id: '306', en: 'distinguish', ja: 'を区別する，識別する(動詞)' },
-    { id: '307', en: 'sophisticated', ja: '洗練された，高雅な(形容詞)' },
-    { id: '308', en: 'upset', ja: '気持ちが動揺した，ひっくり返す(形容詞)' },
-    { id: '309', en: 'disturb', ja: 'を阻害する，(人の)邪魔をする(動詞)' },
-    { id: '310', en: 'invest', ja: 'に投資する，資本をつぎ込む(動詞)' },
-    { id: '311', en: 'intense', ja: '激しい，熱心な(形容詞)' },
-    { id: '312', en: 'retire', ja: '退職する，引退する(動詞)' },
-    { id: '313', en: 'wildlife', ja: '野生動物，野生生物(名詞)' },
-    { id: '314', en: 'polite', ja: '礼儀正しい，丁寧な(形容詞)' },
-    { id: '315', en: 'entertain', ja: 'を楽しませる(動詞)' },
-    { id: '316', en: 'competition', ja: '競争(名詞)' },
-    { id: '317', en: 'inquiry', ja: '問い合わせ，質問(名詞)' },
-    { id: '318', en: 'period', ja: '期間，周期(名詞)' },
-    { id: '319', en: 'bind', ja: '縛りつける，束ねる(動詞)' },
-    { id: '320', en: 'certain', ja: 'ある，確信している(形容詞)' },
-    { id: '321', en: 'passenger', ja: '乗客，客(名詞)' },
-    { id: '322', en: 'behavior', ja: '振る舞い，態度(名詞)' },
-    { id: '323', en: 'meanwhile', ja: '一方で，他方で(副詞)' },
-    { id: '324', en: 'earn', ja: '稼ぐ，得る(動詞)' },
-    { id: '325', en: 'enter', ja: '入る，入場する(動詞)' },
-    { id: '326', en: 'complex', ja: '複雑な，複合の(形容詞)' },
-    { id: '327', en: 'moreover', ja: 'さらに，その上(副詞)' },
-    { id: '328', en: 'structure', ja: '構造，建造物(名詞)' },
-    { id: '329', en: 'annoy', ja: 'いらだたせる，怒らせる(動詞)' },
-    { id: '330', en: 'direction', ja: '方向，方角(名詞)' },
-    { id: '331', en: 'influence', ja: '影響，影響力，波及/影響を及ぼす(名詞)' },
-    { id: '332', en: 'rapidly', ja: '素早く，迅速に(副詞)' },
-    { id: '333', en: 'detail', ja: '詳細，具体的な情報(名詞)' },
-    { id: '334', en: 'culture', ja: '文化，教養(名詞)' },
-    { id: '335', en: 'prior', ja: '優先の，前の(形容詞)' },
-    { id: '336', en: 'fire', ja: '首にする，火をつける/火，火事(動詞)' },
-    { id: '337', en: 'assessment', ja: '評価，査定(名詞)' },
-    { id: '338', en: 'engaged', ja: 'に従事して，忙しくして(形容詞)' },
-    { id: '339', en: 'regret', ja: '後悔する/後悔，遺憾(動詞)' },
-    { id: '340', en: 'excuse', ja: '言い訳，弁解/を許す(名詞)' },
-    { id: '341', en: 'court', ja: '裁判所，法廷(名詞)' },
-    { id: '342', en: 'solve', ja: 'を解決する，解消する(動詞)' },
-    { id: '343', en: 'threaten', ja: 'を脅かす(動詞)' },
-    { id: '344', en: 'enable', ja: 'に可能にさせる(動詞)' },
-    { id: '345', en: 'unfortunately', ja: '残念なことに，不幸にも(副詞)' },
-    { id: '346', en: 'representation', ja: '表現，表示(名詞)' },
-    { id: '347', en: 'procedure', ja: '手続き，手順(名詞)' },
-    { id: '348', en: 'expectation', ja: '期待，予想(名詞)' },
-    { id: '349', en: 'asset', ja: '資産，財産(名詞)' },
-    { id: '350', en: 'dump', ja: '投げ捨てる，捨てる(動詞)' },
-    { id: '351', en: 'citizen', ja: '市民，国民(名詞)' },
-    { id: '352', en: 'occupation', ja: '職業，仕事(名詞)' },
-    { id: '353', en: 'restore', ja: 'を元に戻す，を修復する(動詞)' },
-    { id: '354', en: 'significance', ja: '重要性，意義(名詞)' },
-    { id: '355', en: 'flow', ja: '流れる，流す(動詞)' },
-    { id: '356', en: 'failure', ja: '失敗，挫折(名詞)' },
-    { id: '357', en: 'earnings', ja: '収益，稼ぎ(名詞)' },
-    { id: '358', en: 'disease', ja: '病気，疾患(名詞)' },
-    { id: '359', en: 'peer', ja: '同僚，仲間(名詞)' },
-    { id: '360', en: 'strategy', ja: '戦略，戦術(名詞)' },
-    { id: '361', en: 'remarkable', ja: '目立った，際立った(形容詞)' },
-    { id: '362', en: 'heel', ja: 'かかと，きびす(名詞)' },
-    { id: '363', en: 'definitely', ja: '絶対に，確実に(副詞)' },
-    { id: '364', en: 'ordinary', ja: 'ふつうの，いつもの(形容詞)' },
-    { id: '365', en: 'isolate', ja: 'を孤立させる，隔離する(動詞)' },
-    { id: '366', en: 'competitive', ja: '競争力のある，競争による(形容詞)' },
-    { id: '367', en: 'progress', ja: '進歩，前進(名詞)' },
-    { id: '368', en: 'typical', ja: '典型的な，代表的な(形容詞)' },
-    { id: '369', en: 'compete', ja: '競争する，争う(動詞)' },
-    { id: '370', en: 'assault', ja: '暴行，攻撃(名詞)' },
-    { id: '371', en: 'conviction', ja: '信念，確信(名詞)' },
-    { id: '372', en: 'terrible', ja: 'ひどい，恐ろしい(形容詞)' },
-    { id: '373', en: 'bill', ja: '請求書，勘定書(名詞)' },
-    { id: '374', en: 'pain', ja: '痛み，苦痛(名詞)' },
-    { id: '375', en: 'emphasize', ja: 'を強調する，力説する(動詞)' },
-    { id: '376', en: 'weather', ja: '天候，天気(名詞)' },
-    { id: '377', en: 'immigrant', ja: '移民，移住者(名詞)' },
-    { id: '378', en: 'interpret', ja: 'を解釈する，受け取る(動詞)' },
-    { id: '379', en: 'thick', ja: '厚い，肥厚な(形容詞)' },
-    { id: '380', en: 'merchant', ja: '商人，販売者(名詞)' },
-    { id: '381', en: 'physics', ja: '物理学，物理科学(名詞)' },
-    { id: '382', en: 'trigger', ja: '引き金，誘因(名詞)' },
-    { id: '383', en: 'status', ja: '状態，身分(名詞)' },
-    { id: '384', en: 'worth', ja: 'の価値がある，（～するに）値する(形容詞)' },
-    { id: '385', en: 'relation', ja: '関係性，相互作用(名詞)' },
-    { id: '386', en: 'later', ja: '後に，以後(副詞)' },
-    { id: '387', en: 'political', ja: '政治の(形容詞)' },
-    { id: '388', en: 'truth', ja: '真実，事実(名詞)' },
-    { id: '389', en: 'partly', ja: '部分的に，一部分(副詞)' },
-    { id: '390', en: 'observe', ja: 'を観察する，を監視する(動詞)' },
-    { id: '391', en: 'stream', ja: '流れ，水流(名詞)' },
-    { id: '392', en: 'oppose', ja: '反対する，抵抗する(動詞)' },
-    { id: '393', en: 'quite', ja: 'かなり，相当に(副詞)' },
-    { id: '394', en: 'conscious', ja: '意識して，気をつけて(形容詞)' },
-    { id: '395', en: 'intend', ja: '意図する，意図して(動詞)' },
-    { id: '396', en: 'operation', ja: '操作，作用(名詞)' },
-    { id: '397', en: 'recommend', ja: 'を推薦する，を勧める(動詞)' },
-    { id: '398', en: 'feature', ja: '特徴，特性/を目玉とする(名詞)' },
-    { id: '399', en: 'consideration', ja: '考慮，考察(名詞)' },
-    { id: '400', en: 'diet', ja: '食事，食事療法(名詞)' },
-    { id: '401', en: 'horror', ja: '恐怖，怖さ(名詞)' },
-    { id: '402', en: 'population', ja: '人口，国民(名詞)' },
-    { id: '403', en: 'necessarily', ja: '必然的に，必ず(副詞)' },
-    { id: '404', en: 'agree', ja: '同意する，承認する(動詞)' },
-    { id: '405', en: 'whether', ja: 'どちらか，いずれか(接続詞)' },
-    { id: '406', en: 'analysis', ja: '分析，解析(名詞)' },
-    { id: '407', en: 'conflict', ja: '対立，争い(名詞)' },
-    { id: '408', en: 'extreme', ja: '極端な，過激な(形容詞)' },
-    { id: '409', en: 'wherever', ja: 'どこでも，どの場所でも(接続詞)' },
-    { id: '410', en: 'source', ja: '情報源，原因(名詞)' },
-    { id: '411', en: 'objective', ja: '目標，目的(名詞)' },
-    { id: '412', en: 'rural', ja: '田舎の，農村の(形容詞)' },
-    { id: '413', en: 'headline', ja: '見出し，表題(名詞)' },
-    { id: '414', en: 'analyst', ja: '分析者(名詞)' },
-    { id: '415', en: 'sign', ja: '標識，印，合図(名詞)' },
-    { id: '416', en: 'clue', ja: '手がかり，糸口(名詞)' },
-    { id: '417', en: 'controversial', ja: '議論の的になる，論争上の(形容詞)' },
-    { id: '418', en: 'realize', ja: 'だとわかる，実現する(動詞)' },
-    { id: '419', en: 'surround', ja: 'を取り囲む，を包囲する(動詞)' },
-    { id: '420', en: 'commission', ja: '手数料，委任状(名詞)' },
-    { id: '421', en: 'seek', ja: '求める，捜し出す(動詞)' },
-    { id: '422', en: 'independent', ja: '独立した，自立した(形容詞)' },
-    { id: '423', en: 'proposed', ja: '提案した，提供した(形容詞)' },
-    { id: '424', en: 'international', ja: '国際的な，国際レベルの(形容詞)' },
-    { id: '425', en: 'several', ja: '幾つかの，いくらかの(形容詞)' },
-    { id: '426', en: 'theory', ja: '理論，学説(名詞)' },
-    { id: '427', en: 'fellow', ja: '仲間，友人(名詞)' },
-    { id: '428', en: 'elderly', ja: '年配の，高齢の(形容詞)' },
-    { id: '429', en: 'extension', ja: '拡張，展開(名詞)' },
-    { id: '430', en: 'proper', ja: '適切な，ふさわしい(形容詞)' },
-    { id: '431', en: 'enhance', ja: '強調する，(さらに)高める(動詞)' },
-    { id: '432', en: 'beyond', ja: '～を越えたところに，～を超えた場所に(前置詞)' },
-    { id: '433', en: 'hear from', ja: 'から便りがある，連絡をもらう(熟語)' },
-    { id: '434', en: 'due', ja: '期限の，納期の(形容詞)' },
-    { id: '435', en: 'existing', ja: '既存の，現存の(形容詞)' },
-    { id: '436', en: 'expand', ja: '拡大する，広がる(動詞)' },
-    { id: '437', en: 'wrong', ja: '間違い，誤った(形容詞)' },
-    { id: '438', en: 'rebel', ja: '反逆者，造反者(名詞)' },
-    { id: '439', en: 'suffer', ja: 'を患う，苦しむ(動詞)' },
-    { id: '440', en: 'within', ja: '以内で，内部で(前置詞)' },
-    { id: '441', en: 'taste', ja: '味，風味/な味がする(名詞)' },
-    { id: '442', en: 'democrat', ja: '民主主義者，民主派(名詞)' },
-    { id: '443', en: 'personally', ja: '個人的に，本人自ら(副詞)' },
-    { id: '444', en: 'throughout', ja: '至るところに，終始(前置詞)' },
-    { id: '445', en: 'preserve', ja: '保存/を保存する(動詞)' },
-    { id: '446', en: 'intelligent', ja: 'かしこい，知能の高い(形容詞)' },
-    { id: '447', en: 'slide', ja: '滑る，滑走する(動詞)' },
-    { id: '448', en: 'popular', ja: '人気のある，評判の良い(形容詞)' },
-    { id: '449', en: 'murder', ja: '殺人，凶行(名詞)' },
-    { id: '450', en: 'attend', ja: '出席する，付き添う(動詞)' },
-    { id: '451', en: 'constantly', ja: '常に，いつも(副詞)' },
-    { id: '452', en: 'drift', ja: '漂流，流れる(名詞)' },
-    { id: '453', en: 'result', ja: '結果(名詞)' },
-    { id: '454', en: 'priority', ja: '優先度，優越性(名詞)' },
-    { id: '455', en: 'joint', ja: '継目，関節(名詞)' },
-    { id: '456', en: 'viewer', ja: '観察者，視聴者，監視人(名詞)' },
-    { id: '457', en: 'satellite', ja: '衛星，人工衛星(名詞)' },
-    { id: '458', en: 'distant', ja: '遠く離れた' },
-    { id: '459', en: 'delivery', ja: '配達，送付(名詞)' },
-    { id: '460', en: 'anxious', ja: '心配した，不安な(形容詞)' },
-    { id: '461', en: 'towards', ja: 'の方へ，向かって(前置詞)' },
-    { id: '462', en: 'employee', ja: '従業員，社員(名詞)' },
-    { id: '463', en: 'significant', ja: '重要な，大切な(形容詞)' },
-    { id: '464', en: 'particular', ja: '特定の，明確な(形容詞)' },
-    { id: '465', en: 'float', ja: '浮かぶ(熟語)' },
-    { id: '466', en: 'criticism', ja: '批判，評価(名詞)' },
-    { id: '467', en: 'appear', ja: '現れる，出現する(動詞)' },
-    { id: '468', en: 'permission', ja: '許可，認可(名詞)' },
-    { id: '469', en: 'virus', ja: 'ウイルス，病原体(名詞)' },
-    { id: '470', en: 'deny', ja: 'を否定する，拒否する(動詞)' },
-    { id: '471', en: 'valuable', ja: '貴重な，価値のある(形容詞)' },
-    { id: '472', en: 'comprehensive', ja: '包括的な，理解力のある(形容詞)' },
-    { id: '473', en: 'till', ja: 'まで，至る(接続詞)' },
-    { id: '474', en: 'properly', ja: '適切に，適当に(副詞)' },
-    { id: '475', en: 'vulnerable', ja: '傷つきやすい，繊細(形容詞)' },
-    { id: '476', en: 'directly', ja: '直接，直接的に(副詞)' },
-    { id: '477', en: 'occupy', ja: '占める，取る(動詞)' },
-    { id: '478', en: 'curious', ja: '好奇心が強い，探究心が強い(形容詞)' },
-    { id: '479', en: 'vary', ja: '多様化する，異なる(動詞)' },
-    { id: '480', en: 'stare', ja: 'じっと見つめる，しきりに観察する(動詞)' },
-    { id: '481', en: 'decade', ja: '10年間(名詞)' },
-    { id: '482', en: 'armed', ja: '武装した，装備した(形容詞)' },
-    { id: '483', en: 'seem', ja: 'の様に見える，思われる(動詞)' },
-    { id: '484', en: 'fate', ja: '運命，宿命(名詞)' },
-    { id: '485', en: 'convince', ja: 'を納得させる，説得する(動詞)' },
-    { id: '486', en: 'criminal', ja: '犯罪の，違法の(名詞)' },
-    { id: '487', en: 'stable', ja: '安定した，安泰な(形容詞)' },
-    { id: '488', en: 'naked', ja: '裸の，無防備な(形容詞)' },
-    { id: '489', en: 'Jewish', ja: 'ユダヤ人，ユダヤ教徒(形容詞)' },
-    { id: '490', en: 'senate', ja: '上院，上院議会(名詞)' },
-    { id: '491', en: 'hide', ja: '隠す，隠れる(動詞)' },
-    { id: '492', en: 'recovery', ja: '回復，復元(名詞)' },
-    { id: '493', en: 'bond', ja: '拘束，束縛(名詞)' },
-    { id: '494', en: 'portrait', ja: '肖像画，顔の絵(名詞)' },
-    { id: '495', en: 'intervention', ja: '介在，仲裁(名詞)' },
-    { id: '496', en: 'consistent', ja: '一貫した，矛盾のない(形容詞)' },
-    { id: '497', en: 'investigator', ja: '捜査官，探偵(名詞)' },
-    { id: '498', en: 'normally', ja: '通常は，普通に(副詞)' },
-    { id: '499', en: 'conclude', ja: 'を締めくくる，終える(動詞)' },
-    { id: '500', en: 'well-known', ja: 'よく知られた，有名な(形容詞)' },
-    { id: '501', en: 'development', ja: '発展，発達，開発(名詞)' },
-    { id: '502', en: 'desire', ja: '願望/切望する(名詞)' },
-    { id: '503', en: 'probably', ja: 'おそらく，大抵(副詞)' },
-    { id: '504', en: 'respond', ja: '反応する，と返答する(動詞)' },
-    { id: '505', en: 'involvement', ja: '関与，関わり合い(名詞)' },
-    { id: '506', en: 'minister', ja: '大臣，牧師(名詞)' },
-    { id: '507', en: 'patch', ja: '当て布，布切れ(名詞)' },
-    { id: '508', en: 'chairman', ja: '会長(名詞)' },
-    { id: '509', en: 'ethnic', ja: '民族の，民族特有の(形容詞)' },
-    { id: '510', en: 'lap', ja: 'ひざ，膝小僧(名詞)' },
-    { id: '511', en: 'refer', ja: 'を参考にする，参照する(動詞)' },
-    { id: '512', en: 'repair', ja: 'を修理する，修繕する(動詞)' },
-    { id: '513', en: 'current', ja: '現在の，現行の(形容詞)' },
-    { id: '514', en: 'obviously', ja: '明らかに，明白に(副詞)' },
-    { id: '515', en: 'ceiling', ja: '天井，屋根(名詞)' },
-    { id: '516', en: 'philosopher', ja: '哲学者(名詞)' },
-    { id: '517', en: 'suicide', ja: '自殺，自害(名詞)' },
-    { id: '518', en: 'social', ja: '社会の，共同体の(形容詞)' },
-    { id: '519', en: 'potential', ja: '潜在的な，潜伏している(形容詞)' },
-    { id: '520', en: 'sum', ja: '合計，総計(名詞)' },
-    { id: '521', en: 'draw', ja: '描く，引っ張る(動詞)' },
-    { id: '522', en: 'rough', ja: 'ごつごつした，粗い(形容詞)' },
-    { id: '523', en: 'fundamental', ja: '基本的な，基礎の(形容詞)' },
-    { id: '524', en: 'association', ja: '協会，連合(名詞)' },
-    { id: '525', en: 'yield', ja: '産出する，生ずる(動詞)' },
-    { id: '526', en: 'politician', ja: '政治家，政府要人(名詞)' },
-    { id: '527', en: 'department', ja: '部門，課(名詞)' },
-    { id: '528', en: 'palm', ja: '手のひら，（動物の）前足の裏(名詞)' },
-    { id: '529', en: 'phenomenon', ja: '現象，事象(名詞)' },
-    { id: '530', en: 'admit', ja: 'を認める，入ることを許す(動詞)' },
-    { id: '531', en: 'critical', ja: '極めて重要な，非常に大事な(形容詞)' },
-    { id: '532', en: 'throat', ja: 'のど，咽喉(名詞)' },
-    { id: '533', en: 'adapt', ja: 'に適合させる，調整する(動詞)' },
-    { id: '534', en: 'largely', ja: '主として，主に(副詞)' },
-    { id: '535', en: 'belong', ja: 'に属する，所属する(動詞)' },
-    { id: '536', en: 'attempt', ja: '試み，試練(名詞)' },
-    { id: '537', en: 'impress', ja: '感銘を与える，感動させる(動詞)' },
-    { id: '538', en: 'submit', ja: 'を提出する，に服従する(動詞)' },
-    { id: '539', en: 'bored', ja: '退屈した，つまらない(形容詞)' },
-    { id: '540', en: 'electric', ja: '電気の，電力の(形容詞)' },
-    { id: '541', en: 'civilized', ja: '発達した文明をもつ，教養の高い(形容詞)' },
-    { id: '542', en: 'combat', ja: '戦闘，闘争(名詞)' },
-    { id: '543', en: 'destruction', ja: '破壊，壊滅(名詞)' },
-    { id: '544', en: 'ally', ja: 'と同盟する，連合する(動詞)' },
-    { id: '545', en: 'similarly', ja: '同様に，一様に(副詞)' },
-    { id: '546', en: 'complete', ja: '完全な，全部の(形容詞)' },
-    { id: '547', en: 'complicated', ja: '複雑な，繁雑な(形容詞)' },
-    { id: '548', en: 'mad', ja: '狂った，狂気じみた(形容詞)' },
-    { id: '549', en: 'hate', ja: 'ひどく嫌う，深く憎む(動詞)' },
-    { id: '550', en: 'urban', ja: '都会の，市内の(形容詞)' },
-    { id: '551', en: 'reputation', ja: '評判，評価(名詞)' },
-    { id: '552', en: 'phase', ja: '段階，レベル(名詞)' },
-    { id: '553', en: 'philosophy', ja: '哲学(名詞)' },
-    { id: '554', en: 'shooting', ja: '撮影，射撃(名詞)' },
-    { id: '555', en: 'include', ja: 'を含む，内包する(動詞)' },
-    { id: '556', en: 'medium', ja: '中間の，中央の(形容詞)' },
-    { id: '557', en: 'contemporary', ja: '現在の，現代の(形容詞)' },
-    { id: '558', en: 'jury', ja: '陪審員，審査員(名詞)' },
-    { id: '559', en: 'huge', ja: '巨大な，広大な(形容詞)' },
-    { id: '560', en: 'awful', ja: 'ひどい，恐ろしい(形容詞)' },
-    { id: '561', en: 'examine', ja: 'を検査する，調査する(動詞)' },
-    { id: '562', en: 'element', ja: '要素，元素(名詞)' },
-    { id: '563', en: 'mainly', ja: '主に，もっぱら(副詞)' },
-    { id: '564', en: 'success', ja: '成功，達成(名詞)' },
-    { id: '565', en: 'exist', ja: '存在する，実在する(動詞)' },
-    { id: '566', en: 'gentle', ja: '穏やかな，物柔らかな(形容詞)' },
-    { id: '567', en: 'occasion', ja: '特定の時，行事，祭典(名詞)' },
-    { id: '568', en: 'accompany', ja: 'に付き添う，に同行する(動詞)' },
-    { id: '569', en: 'virtually', ja: '実質的に，事実上(副詞)' },
-    { id: '570', en: 'withdraw', ja: 'を撤回する，引き下がる/引き出す(動詞)' },
-    { id: '571', en: 'leisure', ja: '余暇，自由時間(名詞)' },
-    { id: '572', en: 'representative', ja: '代表者，代理人(名詞)' },
-    { id: '573', en: 'mass', ja: '塊，大部分(名詞)' },
-    { id: '574', en: 'honest', ja: '正直な(形容詞)' },
-    { id: '575', en: 'imply', ja: 'をほのめかす，暗示する(動詞)' },
-    { id: '576', en: 'mixture', ja: '混合物，複合体(名詞)' },
-    { id: '577', en: 'aware', ja: '気づいている，知っている(形容詞)' },
-    { id: '578', en: 'device', ja: '装置，仕掛け(名詞)' },
-    { id: '579', en: 'deputy', ja: '代理，代わり(名詞)' },
-    { id: '580', en: 'smell', ja: 'においがする，臭いがする(動詞)' },
-    { id: '581', en: 'overall', ja: '全体的な，全部の(形容詞)' },
-    { id: '582', en: 'custom', ja: '習慣，慣例(名詞)' },
-    { id: '583', en: 'roll', ja: '転がる' },
-    { id: '584', en: 'exposure', ja: '暴露，さらすこと(名詞)' },
-    { id: '585', en: 'term', ja: '期間，専門用語(名詞)' },
-    { id: '586', en: 'industry', ja: '産業，工業(名詞)' },
-    { id: '587', en: 'otherwise', ja: 'さもなければ(副詞)' },
-    { id: '588', en: 'electronic', ja: '電子の，電子式の(形容詞)' },
-    { id: '589', en: 'proud', ja: '自慢に思って，誇らしげな(形容詞)' },
-    { id: '590', en: 'task', ja: '仕事，職業(名詞)' },
-    { id: '591', en: 'concentration', ja: '集中，専念(名詞)' },
-    { id: '592', en: 'debate', ja: '討論，議論(名詞)' },
-    { id: '593', en: 'suggest', ja: 'を提案する，勧める(動詞)' },
-    { id: '594', en: 'derive', ja: 'を引き出す，取り出す(動詞)' },
-    { id: '595', en: 'lawn', ja: '芝生，草地(名詞)' },
-    { id: '596', en: 'compose', ja: 'を構成する，作曲する(動詞)' },
-    { id: '597', en: 'react', ja: '反応する，返答する(動詞)' },
-    { id: '598', en: 'proportion', ja: '比率，割合(名詞)' },
-    { id: '599', en: 'confident', ja: '自信のある，確信している(形容詞)' },
-    { id: '600', en: 'manufacturing', ja: '製造している(動詞)' },
-    { id: '601', en: 'multiple', ja: '掛け算する，乗算する(動詞)' },
-    { id: '602', en: 'chest', ja: 'たんす，チェスト(名詞)' },
-    { id: '603', en: 'authority', ja: '権威，権力(名詞)' },
-    { id: '604', en: 'creature', ja: '生き物，生物(名詞)' },
-    { id: '605', en: 'wear', ja: '身につけている，着用している(動詞)' },
-    { id: '606', en: 'swear', ja: '誓う，宣誓する(動詞)' },
-    { id: '607', en: 'survival', ja: '生存/生き延びる(名詞)' },
-    { id: '608', en: 'attractive', ja: '魅力的な，興味をそそる(形容詞)' },
-    { id: '609', en: 'union', ja: '統合，一致(名詞)' },
-    { id: '610', en: 'prisoner', ja: '囚人，受刑者(名詞)' },
-    { id: '611', en: 'sight', ja: '見ること，視力(名詞)' },
-    { id: '612', en: 'expose', ja: '明らかにする，明示する(動詞)' },
-    { id: '613', en: 'therefore', ja: 'それゆえ，だから(副詞)' },
-    { id: '614', en: 'prosecutor', ja: '検察官，検事(名詞)' },
-    { id: '615', en: 'present', ja: '現在の，出席して(形容詞)' },
-    { id: '616', en: 'publication', ja: '出版物，刊行物(名詞)' },
-    { id: '617', en: 'dull', ja: '面白みのない，鈍い(形容詞)' },
-    { id: '618', en: 'aspect', ja: '局面，側面，表情(名詞)' },
-    { id: '619', en: 'advice', ja: '助言，忠告(名詞)' },
-    { id: '620', en: 'fair', ja: '公平な，平等な(形容詞)' },
-    { id: '621', en: 'via', ja: '～経由で(前置詞)' },
-    { id: '622', en: 'mayor', ja: '市長，町長(名詞)' },
-    { id: '623', en: 'lose', ja: '失う，無くす(動詞)' },
-    { id: '624', en: 'judgement', ja: '判断(名詞)' },
-    { id: '625', en: 'observer', ja: '観察者，傍観者(名詞)' },
-    { id: '626', en: 'tongue', ja: '言葉，舌(名詞)' },
-    { id: '627', en: 'defendant', ja: '被告人，告発される人(名詞)' },
-    { id: '628', en: 'handle', ja: 'を手で扱う，に対処する/取っ手(動詞)' },
-    { id: '629', en: 'component', ja: '成分(名詞)' },
-    { id: '630', en: 'declare', ja: 'を宣言する，公表する(動詞)' },
-    { id: '631', en: 'squeeze', ja: '絞る，押しつぶす(動詞)' },
-    { id: '632', en: 'maintain', ja: 'を維持する，保つ(動詞)' },
-    { id: '633', en: 'passage', ja: '一節，節分(名詞)' },
-    { id: '634', en: 'bitter', ja: '苦い，えぐい(形容詞)' },
-    { id: '635', en: 'whom', ja: '誰を(代名詞)' },
-    { id: '636', en: 'split', ja: '割る，裂く(動詞)' },
-    { id: '637', en: 'capable', ja: '可能性がある，才能のある(形容詞)' },
-    { id: '638', en: 'habit', ja: '習慣，慣行(名詞)' },
-    { id: '639', en: 'concrete', ja: '具体的な，明確な(形容詞)' },
-    { id: '640', en: 'remaining', ja: '残りの，残余の(形容詞)' },
-    { id: '641', en: 'depend', ja: '依存する，頼る(動詞)' },
-    { id: '642', en: 'dependent', ja: '依存している，頼っている(形容詞)' },
-    { id: '643', en: 'so ～ that ～', ja: 'とても…なので(接続詞)' },
-    { id: '644', en: 'argue', ja: 'だと主張する，感情的に論じる(動詞)' },
-    { id: '645', en: 'consequence', ja: '結果，影響(名詞)' },
-    { id: '646', en: 'outcome', ja: '結果，成果(名詞)' },
-    { id: '647', en: 'heritage', ja: '遺産，相続財産(名詞)' },
-    { id: '648', en: 'ban', ja: 'を禁止する/禁止(動詞)' },
-    { id: '649', en: 'steam', ja: '蒸気，湯気(名詞)' },
-    { id: '650', en: 'biological', ja: '生物学上の，生物的な(形容詞)' },
-    { id: '651', en: 'voter', ja: '投票者，選挙人(名詞)' },
-    { id: '652', en: 'landscape', ja: '風景，眺め(名詞)' },
-    { id: '653', en: 'moment', ja: '瞬間，瞬時(名詞)' },
-    { id: '654', en: 'occasionally', ja: '時折，稀に(副詞)' },
-    { id: '655', en: 'practical', ja: '実用的な，有用な(形容詞)' },
-    { id: '656', en: 'wipe', ja: 'を拭く，拭き取る(動詞)' },
-    { id: '657', en: 'tradition', ja: '伝統，慣習(名詞)' },
-    { id: '658', en: 'affair', ja: '事柄，問題(名詞)' },
-    { id: '659', en: 'reward', ja: '褒美，報酬(名詞)' },
-    { id: '660', en: 'award', ja: '賞(名詞)' },
-    { id: '661', en: 'purpose', ja: '目的，目標(名詞)' },
-    { id: '662', en: 'gather', ja: 'を集める，収集する(動詞)' },
-    { id: '663', en: 'respect', ja: '尊敬，敬意(名詞)' },
-    { id: '664', en: 'advertise', ja: '宣伝する，広告する(動詞)' },
-    { id: '665', en: 'eventually', ja: '結局は，やがて(副詞)' },
-    { id: '666', en: 'approval', ja: '承認，認可(名詞)' },
-    { id: '667', en: 'reach', ja: '到着する，辿り着く(動詞)' },
-    { id: '668', en: 'afraid', ja: '心配して，恐れて(形容詞)' },
-    { id: '669', en: 'commercial', ja: '商業の，商取引の(形容詞)' },
-    { id: '670', en: 'harmful', ja: '有害な，害のある(形容詞)' },
-    { id: '671', en: 'suggestion', ja: '提案，案(名詞)' },
-    { id: '672', en: 'contrast', ja: '対照，比較(名詞)' },
-    { id: '673', en: 'coal', ja: '石炭，炭(名詞)' },
-    { id: '674', en: 'headquarters', ja: '本部，中心(名詞)' },
-    { id: '675', en: 'absorb', ja: 'を吸収する，吸い取る(動詞)' },
-    { id: '676', en: 'proposal', ja: '提案，勧告(名詞)' },
-    { id: '677', en: 'consumer', ja: '消費者，利用者(名詞)' },
-    { id: '678', en: 'historic', ja: '由緒のある，歴史に残る(形容詞)' },
-    { id: '679', en: 'pursue', ja: '追い求める，追跡する(動詞)' },
-    { id: '680', en: 'immediate', ja: '即座の，瞬時の(形容詞)' },
-    { id: '681', en: 'knee', ja: '膝(名詞)' },
-    { id: '682', en: 'apply', ja: '適用する，応用する(動詞)' },
-    { id: '683', en: 'existence', ja: '存在，実在(名詞)' },
-    { id: '684', en: 'dismiss', ja: 'を退出させる(動詞)' },
-    { id: '685', en: 'regional', ja: '地方の，地域の(形容詞)' },
-    { id: '686', en: 'war', ja: '戦争，衝突(名詞)' },
-    { id: '687', en: 'factor', ja: '要因，原因(名詞)' },
-    { id: '688', en: 'constant', ja: '絶え間ない，一定の(形容詞)' },
-    { id: '689', en: 'encourage', ja: 'を勇気づける，励ます(動詞)' },
-    { id: '690', en: 'prayer', ja: '祈り，礼拝(名詞)' },
-    { id: '691', en: 'forward', ja: '前方へ，前に(副詞)' },
-    { id: '692', en: 'principle', ja: '原理(名詞)' },
-    { id: '693', en: 'bravely', ja: '勇気をもって(副詞)' },
-    { id: '694', en: 'stimulate', ja: 'を刺激する，元気づける(動詞)' },
-    { id: '695', en: 'address', ja: '住所，居住地(名詞)' },
-    { id: '696', en: 'accept', ja: '受け入れる，受け取る(動詞)' },
-    { id: '697', en: 'increase', ja: 'を増やす，増大させる(動詞)' },
-    { id: '698', en: 'remind', ja: 'に思い出させる，に気付かせる(動詞)' },
-    { id: '699', en: 'proof', ja: '証拠(名詞)' },
-    { id: '700', en: 'appropriate', ja: '適当な(形容詞)' },
-    { id: '701', en: 'deserve', ja: '値する，価値がある(動詞)' },
-    { id: '702', en: 'establishment', ja: '設立，創立(名詞)' },
-    { id: '703', en: 'definition', ja: '定義，明確な説明(名詞)' },
-    { id: '704', en: 'economic', ja: '経済の，財政の(形容詞)' },
-    { id: '705', en: 'introduce', ja: '紹介する，引き合わす(動詞)' },
-    { id: '706', en: 'convey', ja: '伝える，運ぶ(動詞)' },
-    { id: '707', en: 'partnership', ja: '共同，提携(名詞)' },
-    { id: '708', en: 'attorney', ja: '弁護士，代理人(名詞)' },
-    { id: '709', en: 'index', ja: '索引，目次(名詞)' },
-    { id: '710', en: 'circumstance', ja: '状況，環境(名詞)' },
-    { id: '711', en: 'conversation', ja: '会話，対話(名詞)' },
-    { id: '712', en: 'poet', ja: '詩人，作詩者(名詞)' },
-    { id: '713', en: 'craft', ja: '工芸，技能(名詞)' },
-    { id: '714', en: 'spill', ja: 'をこぼす，溢れる(動詞)' },
-    { id: '715', en: 'reject', ja: '拒絶する，断る(動詞)' },
-    { id: '716', en: 'province', ja: '州，地方(名詞)' },
-    { id: '717', en: 'admission', ja: '入場，入場料(名詞)' },
-    { id: '718', en: 'consumption', ja: '消費，消費高(名詞)' },
-    { id: '719', en: 'bishop', ja: '司教，教会の指導者(名詞)' },
-    { id: '720', en: 'fuel', ja: '燃料，燃えやすいもの(名詞)' },
-    { id: '721', en: 'guess', ja: '推測する，予想する(動詞)' },
-    { id: '722', en: 'economy', ja: '経済，節約(名詞)' },
-    { id: '723', en: 'construct', ja: 'を組み立てる，建設する(動詞)' },
-    { id: '724', en: 'assistance', ja: '支援，手伝い(名詞)' },
-    { id: '725', en: 'implement', ja: '実施する/道具，手段(動詞)' },
-    { id: '726', en: 'peak', ja: '頂上，頂点(名詞)' },
-    { id: '727', en: 'sculpture', ja: '彫刻，彫像(名詞)' },
-    { id: '728', en: 'various', ja: '様々な，多様な(形容詞)' },
-    { id: '729', en: 'symptom', ja: '症状，兆候(名詞)' },
-    { id: '730', en: 'tribe', ja: '部族，種族(名詞)' },
-    { id: '731', en: 'agriculture', ja: '農業，耕作(名詞)' },
-    { id: '732', en: 'dealer', ja: '販売業者，売り手(名詞)' },
-    { id: '733', en: 'unlike', ja: 'と異なって，とは違って(前置詞)' },
-    { id: '734', en: 'invent', ja: 'を発明する，創造する(動詞)' },
-    { id: '735', en: 'treaty', ja: '条約(名詞)' },
-    { id: '736', en: 'trust', ja: '信頼，信用(名詞)' },
-    { id: '737', en: 'instruction', ja: '指示，指導(名詞)' },
-    { id: '738', en: 'comedy', ja: '喜劇，茶番(名詞)' },
-    { id: '739', en: 'absolutely', ja: '絶対に，必ず(副詞)' },
-    { id: '740', en: 'alliance', ja: '同盟，協定(名詞)' },
-    { id: '741', en: 'law', ja: '法律，制度(名詞)' },
-    { id: '742', en: 'evil', ja: '邪悪な，悪しき(形容詞)' },
-    { id: '743', en: 'chamber', ja: '小部屋，個室(名詞)' },
-    { id: '744', en: 'suppose', ja: 'だと思う，と仮定する(動詞)' },
-    { id: '745', en: 'develop', ja: 'を発達させる，を開発する(動詞)' },
-    { id: '746', en: 'remember', ja: '覚えている，を思い出す(動詞)' },
-    { id: '747', en: 'entitle', ja: 'と題する，と名づける(動詞)' },
-    { id: '748', en: 'significantly', ja: 'かなり，相当に(副詞)' },
-    { id: '749', en: 'confidence', ja: '自信，信頼(名詞)' },
-    { id: '750', en: 'national', ja: '国の，国民の(形容詞)' },
-    { id: '751', en: 'whenever', ja: 'する時はいつでも，する際は常に(接続詞)' },
-    { id: '752', en: 'rush', ja: '突進する，急ぐ，急ぎ(動詞)' },
-    { id: '753', en: 'female', ja: '雌の，女性の(形容詞)' },
-    { id: '754', en: 'identity', ja: '同一性，一致性(名詞)' },
-    { id: '755', en: 'independence', ja: '独立，自立(名詞)' },
-    { id: '756', en: 'match', ja: '試合，競技(名詞)' },
-    { id: '757', en: 'fix', ja: '固定する，固める(動詞)' },
-    { id: '758', en: 'cooperation', ja: '協力，共同作業(名詞)' },
-    { id: '759', en: 'coalition', ja: '連立，連合(名詞)' },
-    { id: '760', en: 'detect', ja: 'を検出する，を感知する(動詞)' },
-    { id: '761', en: 'interior', ja: '内部の，内側の(形容詞)' },
-    { id: '762', en: 'alter', ja: 'を変える，を改変する(動詞)' },
-    { id: '763', en: 'retirement', ja: '退職，引退(名詞)' },
-    { id: '764', en: 'sensitive', ja: '敏感な，感じやすい(形容詞)' },
-    { id: '765', en: 'reply', ja: '返答する，応答する(動詞)' },
-    { id: '766', en: 'opposition', ja: '反対，対立(名詞)' },
-    { id: '767', en: 'export', ja: 'を輸出する，輸送する(動詞)' },
-    { id: '768', en: 'psychologist', ja: '心理学者，精神科学者(名詞)' },
-    { id: '769', en: 'pension', ja: '年金，老後の資金(名詞)' },
-    { id: '770', en: 'correspondent', ja: '特派員(名詞)' },
-    { id: '771', en: 'duty', ja: '職務，関税(名詞)' },
-    { id: '772', en: 'attach', ja: 'を貼り付ける，を貼る(動詞)' },
-    { id: '773', en: 'personality', ja: '人格，性格(名詞)' },
-    { id: '774', en: 'fully', ja: '十分に，完全に(副詞)' },
-    { id: '775', en: 'scheme', ja: '計画，企画(名詞)' },
-    { id: '776', en: 'install', ja: '導入する，導く(動詞)' },
-    { id: '777', en: 'ingredient', ja: '材料，原料，成分(名詞)' },
-    { id: '778', en: 'flood', ja: '洪水，氾濫(名詞)' },
-    { id: '779', en: 'folk', ja: '人々，群衆(名詞)' },
-    { id: '780', en: 'election', ja: '選挙，投票(名詞)' },
-    { id: '781', en: 'despite', ja: 'にも関わらず，けれども(前置詞)' },
-    { id: '782', en: 'revolution', ja: '革命，変革(名詞)' },
-    { id: '783', en: 'promotion', ja: '昇進，進級(名詞)' },
-    { id: '784', en: 'industrial', ja: '産業の，工業の(形容詞)' },
-    { id: '785', en: 'dramatic', ja: '劇的な，感動的な(形容詞)' },
-    { id: '786', en: 'lean', ja: '傾く，寄りかかる(動詞)' },
-    { id: '787', en: 'exhibition', ja: '展示，展覧(名詞)' },
-    { id: '788', en: 'compromise', ja: '妥協，和解(名詞)' },
-    { id: '789', en: 'anxiety', ja: '心配，不安(名詞)' },
-    { id: '790', en: 'relevant', ja: '関連のある，適切な(形容詞)' },
-    { id: '791', en: 'observation', ja: '観察，観測(名詞)' },
-    { id: '792', en: 'manager', ja: '部長，支配人(名詞)' },
-    { id: '793', en: 'defeat', ja: '負かす，打ち破る(動詞)' },
-    { id: '794', en: 'surgery', ja: '手術，外科(名詞)' },
-    { id: '795', en: 'reaction', ja: '反応，反響(名詞)' },
-    { id: '796', en: 'abandon', ja: 'を捨て去る，放棄する(動詞)' },
-    { id: '797', en: 'crisis', ja: '危機，困難(名詞)' },
-    { id: '798', en: 'comfort', ja: '快適さ/慰める(名詞)' },
-    { id: '799', en: 'wise', ja: '賢い，賢明な(形容詞)' },
-    { id: '800', en: 'sustain', ja: '保持する，維持する(動詞)' },
-    { id: '801', en: 'hire', ja: '雇う，採用する(動詞)' },
-    { id: '802', en: 'slip', ja: '滑る(動詞)' },
-    { id: '803', en: 'entirely', ja: '完全に，全く(副詞)' },
-    { id: '804', en: 'totally', ja: '完全に，全く(副詞)' },
-    { id: '805', en: 'extensive', ja: '広範な，広い範囲の(形容詞)' },
-    { id: '806', en: 'represent', ja: 'を表す，を代表する(動詞)' },
-    { id: '807', en: 'receive', ja: 'を受理する，受け取る(動詞)' },
-    { id: '808', en: 'employ', ja: '雇う，採用する(動詞)' },
-    { id: '809', en: 'hang', ja: 'つるす，掛ける(動詞)' },
-    { id: '810', en: 'context', ja: '文脈，背景(名詞)' },
-    { id: '811', en: 'famous', ja: '有名な，著名な(形容詞)' },
-    { id: '812', en: 'assumption', ja: '想定，仮説(名詞)' },
-    { id: '813', en: 'charge', ja: '非難，料金，管理/に請求する(名詞)' },
-    { id: '814', en: 'civilization', ja: '文明，文明社会(名詞)' },
-    { id: '815', en: 'aid', ja: '援助/助ける(名詞)' },
-    { id: '816', en: 'poll', ja: '投票，選挙(名詞)' },
-    { id: '817', en: 'scientific', ja: '科学の，理科の(形容詞)' },
-    { id: '818', en: 'pleasure', ja: '楽しみ，喜び(名詞)' },
-    { id: '819', en: 'dislike', ja: '嫌がる，嫌い(動詞)' },
-    { id: '820', en: 'environment', ja: '環境，状況(名詞)' },
-    { id: '821', en: 'architect', ja: '建築家(名詞)' },
-    { id: '822', en: 'coast', ja: '海岸，沿岸地域(名詞)' },
-    { id: '823', en: 'evolution', ja: '進化，発展(名詞)' },
-    { id: '824', en: 'recall', ja: '呼び戻す，思い出す(動詞)' },
-    { id: '825', en: 'agreement', ja: '同意，賛成(名詞)' },
-    { id: '826', en: 'county', ja: '州，郡(名詞)' },
-    { id: '827', en: 'nation', ja: '国家，国土(名詞)' },
-    { id: '828', en: 'negotiate', ja: '交渉する，協議する(動詞)' },
-    { id: '829', en: 'depth', ja: '深さ(名詞)' },
-    { id: '830', en: 'astronaut', ja: '宇宙飛行士(名詞)' },
-    { id: '831', en: 'threat', ja: '脅威，危機(名詞)' },
-    { id: '832', en: 'transform', ja: 'を変える，を改変する(動詞)' },
-    { id: '833', en: 'method', ja: '方法，手段(名詞)' },
-    { id: '834', en: 'jail', ja: '刑務所，拘置所(名詞)' },
-    { id: '835', en: 'university', ja: '大学，大学校(名詞)' },
-    { id: '836', en: 'primitive', ja: '原始的な，先史的な(形容詞)' },
-    { id: '837', en: 'emerge', ja: '現れる(動詞)' },
-    { id: '838', en: 'physical', ja: '身体の，肉体の(形容詞)' },
-    { id: '839', en: 'false', ja: '誤った，間違った(形容詞)' },
-    { id: '840', en: 'highlight', ja: '目立たせる，最も明るい部分(動詞)' },
-    { id: '841', en: 'estimate', ja: 'を推定する，評価する(動詞)' },
-    { id: '842', en: 'rational', ja: '理性のある(形容詞)' },
-    { id: '843', en: 'efficient', ja: '効率のいい，効率的な(形容詞)' },
-    { id: '844', en: 'initiative', ja: '主導権，自発性(名詞)' },
-    { id: '845', en: 'recommendation', ja: '推薦，推奨(名詞)' },
-    { id: '846', en: 'according', ja: 'による，準じて(前置詞)' },
-    { id: '847', en: 'implication', ja: '含み，裏の意味(名詞)' },
-    { id: '848', en: 'seldom', ja: 'めったに～しない，稀に(副詞)' },
-    { id: '849', en: 'pregnant', ja: '妊娠している，妊娠中の(形容詞)' },
-    { id: '850', en: 'society', ja: '社会，共同体(名詞)' },
-    { id: '851', en: 'breath', ja: '息，呼吸(名詞)' },
-    { id: '852', en: 'employer', ja: '雇用者，雇い主(名詞)' },
-    { id: '853', en: 'advertising', ja: '広告，宣伝(名詞)' },
-    { id: '854', en: 'equipment', ja: '装置，設備(名詞)' },
-    { id: '855', en: 'universe', ja: '宇宙，宙域(名詞)' },
-    { id: '856', en: 'addition', ja: '追加，付加(名詞)' },
-    { id: '857', en: 'visible', ja: '目に見える' },
-    { id: '858', en: 'opinion', ja: '意見，考え(名詞)' },
-    { id: '859', en: 'decline', ja: '断る，拒否する(動詞)' },
-    { id: '860', en: 'male', ja: '男性，雄(名詞)' },
-    { id: '861', en: 'somehow', ja: 'どうにか，何とか(副詞)' },
-    { id: '862', en: 'suit', ja: '適合する，合致する(動詞)' },
-    { id: '863', en: 'latter', ja: '後者の，後半の(形容詞)' },
-    { id: '864', en: 'merely', ja: '単に，ただ(副詞)' },
-    { id: '865', en: 'appearance', ja: '出現，外見(名詞)' },
-    { id: '866', en: 'fairly', ja: 'かなり，公平に(副詞)' },
-    { id: '867', en: 'chapter', ja: '章，区切り(名詞)' },
-    { id: '868', en: 'nearby', ja: '近くの，隣近所の(形容詞)' },
-    { id: '869', en: 'settle', ja: '決着させる，解決する(動詞)' },
-    { id: '870', en: 'contribute', ja: 'に寄付する，捧げる(動詞)' },
-    { id: '871', en: 'foreign', ja: '外国の，海外の(形容詞)' },
-    { id: '872', en: 'extend', ja: '延びる，延長する(動詞)' },
-    { id: '873', en: 'policy', ja: '政策，方針(名詞)' },
-    { id: '874', en: 'cope', ja: '対処する，処理する(動詞)' },
-    { id: '875', en: 'religion', ja: '宗教，信仰(名詞)' },
-    { id: '876', en: 'conclusion', ja: '結論，最終的な判断(名詞)' },
-    { id: '877', en: 'treatment', ja: '扱い，処理(名詞)' },
-    { id: '878', en: 'alternative', ja: '代替物，代案(名詞)' },
-    { id: '879', en: 'reverse', ja: '反対の，裏側の(形容詞)' },
-    { id: '880', en: 'former', ja: '前の，以前の(形容詞)' },
-    { id: '881', en: 'victim', ja: '犠牲者，被害者(名詞)' },
-    { id: '882', en: 'distinction', ja: '区別，相違(名詞)' },
-    { id: '883', en: 'lab', ja: '研究室，研究所(名詞)' },
-    { id: '884', en: 'literary', ja: '文学の，文芸の(形容詞)' },
-    { id: '885', en: 'feed', ja: 'えさを与える(名詞)' },
-    { id: '886', en: 'patient', ja: '我慢強い，患者(名詞)' },
-    { id: '887', en: 'state', ja: '状態，状況(名詞)' },
-    { id: '888', en: 'forever', ja: '永遠に，ずっと(副詞)' },
-    { id: '889', en: 'propose', ja: 'を提案する，申し出る(動詞)' },
-    { id: '890', en: 'pleasant', ja: '楽しい，愉快な(形容詞)' },
-    { id: '891', en: 'content', ja: '中身，内容，目次(名詞)' },
-    { id: '892', en: 'order', ja: '命令，指令(名詞)' },
-    { id: '893', en: 'superior', ja: 'より優れた，優越な(形容詞)' },
-    { id: '894', en: 'pretend', ja: 'のふりをする，に成りすます(動詞)' },
-    { id: '895', en: 'unique', ja: '他に類を見ない，唯一の(形容詞)' },
-    { id: '896', en: 'preparation', ja: '準備，用意(名詞)' },
-    { id: '897', en: 'afford', ja: '余裕がある，ゆとりがある(動詞)' },
-    { id: '898', en: 'congress', ja: '会議，集会(名詞)' },
-    { id: '899', en: 'nuclear', ja: '核の，中心の(形容詞)' },
-    { id: '900', en: 'regarding', ja: 'に関して，について(前置詞)' },
-    { id: '901', en: 'party', ja: '政党，党派(名詞)' },
-    { id: '902', en: 'finance', ja: '財政，財務(名詞)' },
-    { id: '903', en: 'financial', ja: '財政の，財務に関する(形容詞)' },
-    { id: '904', en: 'intelligently', ja: 'かしこく(副詞)' },
-    { id: '905', en: 'describe', ja: 'を述べる，描写する(動詞)' },
-    { id: '906', en: 'operate', ja: '操作する，操る(動詞)' },
-    { id: '907', en: 'embrace', ja: 'を抱きしめる，擁する(動詞)' },
-    { id: '908', en: 'resistance', ja: '抵抗，反対(名詞)' },
-    { id: '909', en: 'dozen', ja: '12の(名詞)' },
-    { id: '910', en: 'corridor', ja: '廊下，通路(名詞)' },
-    { id: '911', en: 'bend', ja: '曲げる(動詞)' },
-    { id: '912', en: 'strike', ja: '叩く，打つ(動詞)' },
-    { id: '913', en: 'educate', ja: '教育する，訓練する(動詞)' },
-    { id: '914', en: 'fabric', ja: '織物，布地(名詞)' },
-    { id: '915', en: 'clerk', ja: '事務員，社員(名詞)' },
-    { id: '916', en: 'evidence', ja: '証拠，証明(名詞)' },
-    { id: '917', en: 'concentrate', ja: 'に集中する(動詞)' },
-    { id: '918', en: 'funding', ja: '資金調達，資本集め(名詞)' },
-    { id: '919', en: 'extraordinary', ja: '普通でない，異常な(形容詞)' },
-    { id: '920', en: 'civilian', ja: '民間人，一般市民(名詞)' },
-    { id: '921', en: 'broadcast', ja: '放送する(動詞)' },
-    { id: '922', en: 'maintenance', ja: '持続，保全(名詞)' },
-    { id: '923', en: 'faith', ja: '信頼，信用(名詞)' },
-    { id: '924', en: 'alike', ja: 'よく似た，類似の(形容詞)' },
-    { id: '925', en: 'grammar', ja: '文法，文法規則(名詞)' },
-    { id: '926', en: 'vehicle', ja: '乗り物，車(名詞)' },
-    { id: '927', en: 'remain', ja: 'のままである，残る(動詞)' },
-    { id: '928', en: 'benefit', ja: '利益/に利益をもたらす(名詞)' },
-    { id: '929', en: 'length', ja: '長さ，延長(名詞)' },
-    { id: '930', en: 'carbon', ja: '炭素，炭素素子(名詞)' },
-    { id: '931', en: 'useful', ja: '役に立つ，有用な(形容詞)' },
-    { id: '932', en: 'fat', ja: '太った，肥満した(形容詞)' },
-    { id: '933', en: 'provision', ja: '供給，支給(名詞)' },
-    { id: '934', en: 'subject', ja: '教科，主題(名詞)' },
-    { id: '935', en: 'region', ja: '地域，領域(名詞)' },
-    { id: '936', en: 'boundary', ja: '境界，限界(名詞)' },
-    { id: '937', en: 'adopt', ja: 'を自分のものにする，を取り入れる(動詞)' },
-    { id: '938', en: 'wisdom', ja: '知恵，賢明さ(名詞)' },
-    { id: '939', en: 'express', ja: '表現する，を言い表す(動詞)' },
-    { id: '940', en: 'brick', ja: 'れんが，れんが状のもの(名詞)' },
-    { id: '941', en: 'creation', ja: '創造，創作(名詞)' },
-    { id: '942', en: 'greet', ja: 'を出迎える，に挨拶する(動詞)' },
-    { id: '943', en: 'block', ja: 'を妨げる，を阻害する(動詞)' },
-    { id: '944', en: 'escape', ja: '逃れる，脱走する(動詞)' },
-    { id: '945', en: 'obtain', ja: 'を手に入れる，を獲得する(動詞)' },
-    { id: '946', en: 'gradually', ja: '次第に，だんだんに(副詞)' },
-    { id: '947', en: 'obvious', ja: '明白な，明瞭な(形容詞)' },
-    { id: '948', en: 'innocent', ja: '罪のない，無罪の(形容詞)' },
-    { id: '949', en: 'distribution', ja: '分布，配分(名詞)' },
-    { id: '950', en: 'exactly', ja: '正確に，正確で(副詞)' },
-    { id: '951', en: 'continent', ja: '大陸，陸地(名詞)' },
-    { id: '952', en: 'arms', ja: '武器，兵器(名詞)' },
-    { id: '953', en: 'compound', ja: '調合する，調合品を作る(動詞)' },
-    { id: '954', en: 'public', ja: '公共の，共有の(形容詞)' },
-    { id: '955', en: 'awareness', ja: '気づき，認識(名詞)' },
-    { id: '956', en: 'remove', ja: 'を取り除く，を除去する(動詞)' },
-    { id: '957', en: 'opponent', ja: '相手，対象(名詞)' },
-    { id: '958', en: 'neighborhood', ja: '近所，近隣(名詞)' },
-    { id: '959', en: 'while', ja: '一方で(接続詞)' },
-    { id: '960', en: 'council', ja: '議会，会議(名詞)' },
-    { id: '961', en: 'suitable', ja: '適した，好都合な(形容詞)' },
-    { id: '962', en: 'secretary', ja: '秘書，秘書官(名詞)' },
-    { id: '963', en: 'participate', ja: '参加する，出席する(動詞)' },
-    { id: '964', en: 'politics', ja: '政治，政策(名詞)' },
-    { id: '965', en: 'accurate', ja: '正確な，的確な(形容詞)' },
-    { id: '966', en: 'chew', ja: '嚙む(動詞)' },
-    { id: '967', en: 'strange', ja: '奇妙な，異常な(形容詞)' },
-    { id: '968', en: 'conventional', ja: '従来の，伝統的な(形容詞)' },
-    { id: '969', en: 'organization', ja: '組織，団体，協会(名詞)' },
-    { id: '970', en: 'desperate', ja: 'やけくその，軽率な(形容詞)' },
-    { id: '971', en: 'moral', ja: '道徳の，道徳的な(形容詞)' },
-    { id: '972', en: 'intellectual', ja: '知的な，知識に関する(形容詞)' },
-    { id: '973', en: 'emphasis', ja: '強調，重視(名詞)' },
-    { id: '974', en: 'particularly', ja: '特に，とりわけ(副詞)' },
-    { id: '975', en: 'founder', ja: '創設者，創立者(名詞)' },
-    { id: '976', en: 'consider', ja: 'について考える，だと見なす(動詞)' },
-    { id: '977', en: 'emotional', ja: '感情の，情緒の(形容詞)' },
-    { id: '978', en: 'infection', ja: '感染(名詞)' },
-    { id: '979', en: 'identify', ja: 'を見分ける，識別する(動詞)' },
-    { id: '980', en: 'demand', ja: '要求，需要/を要求する(名詞)' },
-    { id: '981', en: 'given', ja: '与えられた，授与された(形容詞)' },
-    { id: '982', en: 'transition', ja: '遷移，変遷(名詞)' },
-    { id: '983', en: 'author', ja: '著者，作者(名詞)' },
-    { id: '984', en: 'considerable', ja: 'かなりの，相当な(形容詞)' },
-    { id: '985', en: 'graduate', ja: 'を卒業する，を修了する(動詞)' },
-    { id: '986', en: 'conduct', ja: '行為，行動(名詞)' },
-    { id: '987', en: 'crowd', ja: '群衆，大衆(名詞)' },
-    { id: '988', en: 'nature', ja: '自然，天然(名詞)' },
-    { id: '989', en: 'broad', ja: '広い，拡大する(形容詞)' },
-    { id: '990', en: 'physician', ja: '医師，内科医(名詞)' },
-    { id: '991', en: 'persuade', ja: 'を説得する，口説き落とす(動詞)' },
-    { id: '992', en: 'achievement', ja: '達成，成就(名詞)' },
-    { id: '993', en: 'witness', ja: '目撃者，証人/を目撃する(名詞)' },
-    { id: '994', en: 'face', ja: '直面する/顔(動詞)' },
-    { id: '995', en: 'focus', ja: '焦点，中心(名詞)' },
-    { id: '996', en: 'federal', ja: '連邦の，連邦制の(形容詞)' },
-    { id: '997', en: 'associate', ja: '結びつけて考える，賛同する(動詞)' },
-    { id: '998', en: 'aim', ja: 'ねらいをつける，狙う(動詞)' },
-    { id: '999', en: 'deficit', ja: '赤字，欠損(名詞)' },
-    { id: '1000', en: 'activist', ja: '行動主義者，活動家(名詞)' },
-    { id: '1001', en: 'primary', ja: '最初の，初めての(形容詞)' },
-    { id: '1002', en: 'joy', ja: '喜び，歓喜(名詞)' },
-    { id: '1003', en: 'inspector', ja: '検査官，監査人(名詞)' },
-    { id: '1004', en: 'actually', ja: '実際に，現実に(副詞)' },
-    { id: '1005', en: 'previous', ja: '前の，以前の(形容詞)' },
-    { id: '1006', en: 'variation', ja: '変化，変動(名詞)' },
-    { id: '1007', en: 'stupid', ja: '馬鹿な，愚かな(形容詞)' },
-    { id: '1008', en: 'poverty', ja: '貧困，貧乏，困窮(名詞)' },
-    { id: '1009', en: 'appeal', ja: '訴える，告発する，告訴する(動詞)' },
-    { id: '1010', en: 'substance', ja: '物質，実態(名詞)' },
-    { id: '1011', en: 'regulation', ja: '規制，規定(名詞)' },
-    { id: '1012', en: 'bare', ja: '裸の，露出の(形容詞)' },
-    { id: '1013', en: 'awake', ja: '目を覚ましている，覚醒している(形容詞)' },
-    { id: '1014', en: 'suspect', ja: '疑う，だと思う(動詞)' },
-    { id: '1015', en: 'battery', ja: '電池，蓄電池(名詞)' },
-    { id: '1016', en: 'income', ja: '所得，収入(名詞)' },
-    { id: '1017', en: 'fault', ja: '欠点，短所(名詞)' },
-    { id: '1018', en: 'tissue', ja: '組織(名詞)' },
-    { id: '1019', en: 'stranger', ja: '他人，他者(名詞)' },
-    { id: '1020', en: 'expensive', ja: '高価な，費用のかかる(形容詞)' },
-    { id: '1021', en: 'difference', ja: '違い，差分(名詞)' },
-    { id: '1022', en: 'percentage', ja: '割合，比率(名詞)' },
-    { id: '1023', en: 'own', ja: '自身の，自分自身の(形容詞)' },
-    { id: '1024', en: 'brief', ja: '短い，短時間の(形容詞)' },
-    { id: '1025', en: 'useless', ja: '役に立たない，むだな(形容詞)' },
-    { id: '1026', en: 'predict', ja: 'を予想する，を予測する(動詞)' },
-    { id: '1027', en: 'personnel', ja: '人事，職員(名詞)' },
-    { id: '1028', en: 'sudden', ja: '突然の，急な(形容詞)' },
-    { id: '1029', en: 'transfer', ja: 'を移す，を転送する(動詞)' },
-    { id: '1030', en: 'solid', ja: '固い，固形の(形容詞)' },
-    { id: '1031', en: 'mess', ja: '混乱，錯乱，無秩序(名詞)' },
-    { id: '1032', en: 'flee', ja: '逃げる，逃走する(動詞)' },
-    { id: '1033', en: 'drain', ja: '排出させる，排水をする(動詞)' },
-    { id: '1034', en: 'remark', ja: 'ことば(名詞)' },
-    { id: '1035', en: 'lecture', ja: '講義(名詞)' },
-    { id: '1036', en: 'resolution', ja: '解決，決意(名詞)' },
-    { id: '1037', en: 'desert', ja: '砂漠，乾燥地帯(名詞)' },
-    { id: '1038', en: 'advocate', ja: '提唱する，主張する(動詞)' },
-    { id: '1039', en: 'bet', ja: '賭ける，博打をする(動詞)' },
-    { id: '1040', en: 'characteristic', ja: '特有の，独特の(形容詞)' },
-    { id: '1041', en: 'education', ja: '教育，指導(名詞)' },
-    { id: '1042', en: 'whatever', ja: 'なんでも，何もかも(代名詞)' },
-    { id: '1043', en: 'cause', ja: '原因/の原因となる(名詞)' },
-    { id: '1044', en: 'commitment', ja: '約束，委託(名詞)' },
-    { id: '1045', en: 'supply', ja: '供給(名詞)' },
-    { id: '1046', en: 'temporary', ja: '一時的な，短期的な(形容詞)' },
-    { id: '1047', en: 'involve', ja: 'を含む，を巻き込む(動詞)' },
-    { id: '1048', en: 'meal', ja: '食事，食事療法(名詞)' },
-    { id: '1049', en: 'replace', ja: 'を取り換える，を交換する(動詞)' },
-    { id: '1050', en: 'expression', ja: '表現，言い回し(名詞)' },
-    { id: '1051', en: 'investor', ja: '投資家，投資者(名詞)' },
-    { id: '1052', en: 'humanity', ja: '人間，人間性(名詞)' },
-    { id: '1053', en: 'majority', ja: '大多数，多数派(名詞)' },
-    { id: '1054', en: 'possess', ja: 'を所有する(動詞)' },
-    { id: '1055', en: 'contribution', ja: '寄付，貢献(名詞)' },
-    { id: '1056', en: 'frequently', ja: '頻繁に' },
-    { id: '1057', en: 'shrug', ja: '肩をすくめる，無視する(動詞)' },
-    { id: '1058', en: 'operator', ja: '操作者，操縦者(名詞)' },
-    { id: '1059', en: 'slightly', ja: 'わずかに，少し(副詞)' },
-    { id: '1060', en: 'interpretation', ja: '解釈，通訳(名詞)' },
-    { id: '1061', en: 'rely', ja: '頼る，依存する(動詞)' },
-    { id: '1062', en: 'reduction', ja: '削減，減少(名詞)' },
-    { id: '1063', en: 'whole', ja: '全部の，すべての(形容詞)' },
-    { id: '1064', en: 'purchase', ja: 'を購入する/購入(動詞)' },
-    { id: '1065', en: 'summit', ja: '頂上，山頂(名詞)' },
-    { id: '1066', en: 'hell', ja: '地獄，奈落(名詞)' },
-    { id: '1067', en: 'typically', ja: '典型的に，一般的に(副詞)' },
-    { id: '1068', en: 'admire', ja: 'を賞賛する，を賛美する(動詞)' },
-    { id: '1069', en: 'literature', ja: '文学，文芸(名詞)' },
-    { id: '1070', en: 'issue', ja: '問題，（雑誌などの）号(名詞)' },
-    { id: '1071', en: 'rent', ja: '家賃，賃料(名詞)' },
-    { id: '1072', en: 'widely', ja: '広範囲に，多くの範囲に(副詞)' },
-    { id: '1073', en: 'satisfaction', ja: '満足，充足(名詞)' },
-    { id: '1074', en: 'worry', ja: '心配させる，心配する(動詞)' },
-    { id: '1075', en: 'rub', ja: 'こする，さする(動詞)' },
-    { id: '1076', en: 'completely', ja: '完全に，全く(副詞)' },
-    { id: '1077', en: 'disappear', ja: '消える，見えなくなる(動詞)' },
-    { id: '1078', en: 'inflation', ja: '膨張，拡大(名詞)' },
-    { id: '1079', en: 'maybe', ja: 'たぶん，おそらく(副詞)' },
-    { id: '1080', en: 'calculate', ja: '計算する，算出する(動詞)' },
-    { id: '1081', en: 'determine', ja: 'を決める，を定める(動詞)' },
-    { id: '1082', en: 'Mexican', ja: 'メキシコの，メキシコ系の(形容詞)' },
-    { id: '1083', en: 'crop', ja: '収穫物，作物(名詞)' },
-    { id: '1084', en: 'prosecution', ja: '起訴，告訴(名詞)' },
-    { id: '1085', en: 'toe', ja: 'つま先，足の指(名詞)' },
-    { id: '1086', en: 'seize', ja: 'つかむ，把握する(動詞)' },
-    { id: '1087', en: 'imagination', ja: '想像，仮想(名詞)' },
-    { id: '1088', en: 'governor', ja: '知事，州知事(名詞)' },
-    { id: '1089', en: 'curiosity', ja: '好奇心，探究心(名詞)' },
-    { id: '1090', en: 'rise', ja: '上がる，昇る(動詞)' },
-    { id: '1091', en: 'tail', ja: '尾，尾部(名詞)' },
-    { id: '1092', en: 'except', ja: 'を除いて，除外して(前置詞)' },
-    { id: '1093', en: 'lie', ja: '横たわる，寝転ぶ(動詞)' },
-    { id: '1094', en: 'string', ja: '紐，糸(名詞)' },
-    { id: '1095', en: 'appoint', ja: '任命する，指定する(動詞)' },
-    { id: '1096', en: 'military', ja: '軍隊，兵力(名詞)' },
-    { id: '1097', en: 'conference', ja: '会議，対話(名詞)' },
-    { id: '1098', en: 'explanation', ja: '説明，解説(名詞)' },
-    { id: '1099', en: 'atmosphere', ja: '雰囲気，気候(名詞)' },
-    { id: '1100', en: 'toward', ja: '向かって，のほうへ(前置詞)' },
-    { id: '1101', en: 'convenient', ja: '都合がよい，便利な(形容詞)' },
-    { id: '1102', en: 'examination', ja: '試験，実験(名詞)' },
-    { id: '1103', en: 'sort', ja: '種類，類(名詞)' },
-    { id: '1104', en: 'strongly', ja: '強く，激しく(副詞)' },
-    { id: '1105', en: 'fear', ja: 'を恐れる，恐がる/恐れ(名詞)' },
-    { id: '1106', en: 'ability', ja: '能力，力量(名詞)' },
-    { id: '1107', en: 'weight', ja: '重さ，体重(名詞)' },
-    { id: '1108', en: 'exclude', ja: '除く，排除する(動詞)' },
-    { id: '1109', en: 'discipline', ja: 'しつけ，規律(名詞)' },
-    { id: '1110', en: 'share', ja: '分かち合う/分け前(動詞)' },
-    { id: '1111', en: 'potentially', ja: '潜在的に，可能性として(副詞)' },
-    { id: '1112', en: 'extent', ja: '程度，大きさ(名詞)' },
-    { id: '1113', en: 'discussion', ja: '議論，討論(名詞)' },
-    { id: '1114', en: 'settlement', ja: '移住，定住(名詞)' },
-    { id: '1115', en: 'enormous', ja: '非常に大きい，極端に大きい(形容詞)' },
-    { id: '1116', en: 'presence', ja: '存在，存在感(名詞)' },
-    { id: '1117', en: 'effective', ja: '効果的な，有用な(形容詞)' },
-    { id: '1118', en: 'rapid', ja: '急速な，急激な(形容詞)' },
-    { id: '1119', en: 'basis', ja: '土台，根拠(名詞)' },
-    { id: '1120', en: 'commander', ja: '司令官，指揮官(名詞)' },
-    { id: '1121', en: 'radical', ja: '急進的な，抜本的な(形容詞)' },
-    { id: '1122', en: 'individual', ja: '個人の，個々の(形容詞)' },
-    { id: '1123', en: 'journal', ja: '日誌，日記(名詞)' },
-    { id: '1124', en: 'avoid', ja: 'を避ける，を回避する(動詞)' },
-    { id: '1125', en: 'stake', ja: 'くい，掛け金(名詞)' },
-    { id: '1126', en: 'possibly', ja: 'ひょっとすると，もしかしたら(副詞)' },
-    { id: '1127', en: 'violence', ja: '暴力，乱暴(名詞)' },
-    { id: '1128', en: 'likely', ja: '起こりそうな，可能性がある(形容詞)' },
-    { id: '1129', en: 'entertainment', ja: '娯楽，楽しみ(名詞)' },
-    { id: '1130', en: 'opposite', ja: '反対の，向こう側の(形容詞)' },
-    { id: '1131', en: 'district', ja: '地域，地区(名詞)' },
-    { id: '1132', en: 'domestic', ja: '国内の，家庭の(形容詞)' },
-    { id: '1133', en: 'pitch', ja: '投げる，放る(動詞)' },
-    { id: '1134', en: 'historical', ja: '歴史上の，過去の(形容詞)' },
-    { id: '1135', en: 'bullet', ja: '弾丸(名詞)' },
-    { id: '1136', en: 'revenue', ja: '収益，所得(名詞)' },
-    { id: '1137', en: 'democracy', ja: '民主主義，民主制度(名詞)' },
-    { id: '1138', en: 'legislation', ja: '立法，法制定(名詞)' },
-    { id: '1139', en: 'breast', ja: '胸部，胸(名詞)' },
-    { id: '1140', en: 'actual', ja: '現実の，事実の(形容詞)' },
-    { id: '1141', en: 'eager', ja: '強く望んでいる，切望している(形容詞)' },
-    { id: '1142', en: 'possible', ja: '可能な，実現可能な(形容詞)' },
-    { id: '1143', en: 'proverb', ja: 'ことわざ(名詞)' },
-    { id: '1144', en: 'psychological', ja: '心理的な，精神的な(形容詞)' },
-    { id: '1145', en: 'refugee', ja: '難民，避難者(名詞)' },
-    { id: '1146', en: 'origin', ja: '起源，由来(名詞)' },
-    { id: '1147', en: 'transport', ja: 'を輸送する，を運搬する(動詞)' },
-    { id: '1148', en: 'notion', ja: '考え，意見(名詞)' },
-    { id: '1149', en: 'initially', ja: '最初は，初めて(副詞)' },
-    { id: '1150', en: 'doubt', ja: '疑い，疑問(名詞)' },
-    { id: '1151', en: 'sigh', ja: 'ため息をつく，溜め息をつく(動詞)' },
-    { id: '1152', en: 'laboratory', ja: '実験室，研究所(名詞)' },
-    { id: '1153', en: 'delight', ja: '喜び，歓喜(名詞)' },
-    { id: '1154', en: 'shortly', ja: 'まもなく，近々(副詞)' },
-    { id: '1155', en: 'universal', ja: '普遍的な，万能の(形容詞)' },
-    { id: '1156', en: 'surely', ja: '確かに(副詞)' },
-    { id: '1157', en: 'labor', ja: '労働，労働者(名詞)' },
-    { id: '1158', en: 'entire', ja: '全体の，全部の(形容詞)' },
-    { id: '1159', en: 'blood', ja: '血，血液(名詞)' },
-    { id: '1160', en: 'wonder', ja: 'かなと思う(動詞)' },
-    { id: '1161', en: 'arise', ja: '起こる，現れる(動詞)' },
-    { id: '1162', en: 'incorporate', ja: '合体させる，統合する(動詞)' },
-    { id: '1163', en: 'mere', ja: '単なる，ただの(形容詞)' },
-    { id: '1164', en: 'agenda', ja: '議題(名詞)' },
-    { id: '1165', en: 'terror', ja: '恐怖，恐れ(名詞)' },
-    { id: '1166', en: 'truly', ja: '真に，正確に(副詞)' },
-    { id: '1167', en: 'necessary', ja: '必要な(形容詞)' },
-    { id: '1168', en: 'science', ja: '科学，自然科学(名詞)' },
-    { id: '1169', en: 'favor', ja: '親切な行為，好意(名詞)' },
-    { id: '1170', en: 'recession', ja: '不況，後退(名詞)' },
-    { id: '1171', en: 'aircraft', ja: '航空機，飛行機(名詞)' },
-    { id: '1172', en: 'prison', ja: '刑務所(名詞)' },
-    { id: '1173', en: 'anniversary', ja: '～周年，記念日(名詞)' },
-    { id: '1174', en: 'possibility', ja: '可能性，実現性(名詞)' },
-    { id: '1175', en: 'sequence', ja: '連続，継続(名詞)' },
-    { id: '1176', en: 'slight', ja: 'かすかな，わずかの(形容詞)' },
-    { id: '1177', en: 'customer', ja: '顧客，お客様(名詞)' },
-    { id: '1178', en: 'inform', ja: '情報を与える，に知らせる(動詞)' },
-    { id: '1179', en: 'illegal', ja: '違法の，不正な(形容詞)' },
-    { id: '1180', en: 'investigation', ja: '調査，研究(名詞)' },
-    { id: '1181', en: 'depression', ja: '落ち込み，不景気(名詞)' },
-    { id: '1182', en: 'matter', ja: '問題，困ったこと(名詞)' },
-    { id: '1183', en: 'unless', ja: 'でない限り，除いて(接続詞)' },
-    { id: '1184', en: 'necessity', ja: '必要性，必須(名詞)' },
-    { id: '1185', en: 'supreme', ja: '最高の，至高の(形容詞)' },
-    { id: '1186', en: 'severe', ja: '厳しい，厳格な(形容詞)' },
-    { id: '1187', en: 'bloody', ja: '血の，血液の(形容詞)' },
-    { id: '1188', en: 'apart', ja: '離れて，遠くに(副詞)' },
-    { id: '1189', en: 'cast', ja: '投げる，放る(動詞)' },
-    { id: '1190', en: 'airline', ja: '航空会社，航空業者(名詞)' },
-    { id: '1191', en: 'trading', ja: '取引(名詞)' },
-    { id: '1192', en: 'path', ja: '小道，細道(名詞)' },
-    { id: '1193', en: 'appreciate', ja: '感謝する，ありがたがる(動詞)' },
-    { id: '1194', en: 'crack', ja: '裂け目，ひび(名詞)' },
-    { id: '1195', en: 'hesitate', ja: 'ためらう，躊躇する(動詞)' },
-    { id: '1196', en: 'contrary', ja: '反対の，逆の(形容詞)' },
-    { id: '1197', en: 'depending', ja: '依存している，依存状態(動詞（現在分詞）)' },
-    { id: '1198', en: 'household', ja: '家族，世帯(名詞)' },
-    { id: '1199', en: 'laughter', ja: '笑い，笑顔(名詞)' },
-    { id: '1200', en: 'teenager', ja: '十代，少年期(名詞)' },
-    { id: '1201', en: 'crime', ja: '犯罪，罪行(名詞)' },
-    { id: '1202', en: 'frighten', ja: '怖がらせる，恐れさせる(動詞)' },
-    { id: '1203', en: 'quarter', ja: '四半期，四分期(名詞)' },
-    { id: '1204', en: 'mortgage', ja: '抵当，担保(名詞)' },
-    { id: '1205', en: 'indicate', ja: 'を指し示す(動詞)' },
-    { id: '1206', en: 'stroke', ja: '打撃，衝撃(名詞)' },
-    { id: '1207', en: 'shortage', ja: '不足，欠乏(名詞)' },
-    { id: '1208', en: 'explore', ja: '探索する，調査する(動詞)' },
-    { id: '1209', en: 'property', ja: '財産，所有物(名詞)' },
-    { id: '1210', en: 'freeze', ja: '凍る，氷結(動詞)' },
-    { id: '1211', en: 'closely', ja: '綿密に，詳細に(副詞)' },
-    { id: '1212', en: 'venture', ja: '冒険的事業，投機的事業(名詞)' },
-    { id: '1213', en: 'pretty', ja: 'かなり，相当に(副詞)' },
-    { id: '1214', en: 'account', ja: '銀行口座(名詞)' },
-    { id: '1215', en: 'internal', ja: '内部の，内側の(形容詞)' },
-    { id: '1216', en: 'edge', ja: '端，縁(名詞)' },
-    { id: '1217', en: 'environmental', ja: '環境の，自然環境の(形容詞)' },
-    { id: '1218', en: 'plenty', ja: 'たくさん，多く(名詞)' },
-    { id: '1219', en: 'amendment', ja: '修正，改訂(名詞)' },
-    { id: '1220', en: 'fiber', ja: '繊維，糸(名詞)' },
-    { id: '1221', en: 'somewhat', ja: 'いくぶん，いくらか(副詞)' },
-    { id: '1222', en: 'restriction', ja: '制限，限定(名詞)' },
-    { id: '1223', en: 'in order to', ja: '～するために，～の目的で(熟語)' },
-    { id: '1224', en: 'not only A but also B', ja: 'AだけでなくBもまた，Aと同様Bも(接続詞)' },
-    { id: '1225', en: 'a number of', ja: 'たくさんの，多数の(熟語)' },
-    { id: '1226', en: 'be likely to', ja: 'する可能性が高い，しそうになる(熟語)' },
-    { id: '1227', en: 'end up', ja: '最終的に，することになる(動詞)' },
-    { id: '1228', en: 'publish', ja: 'を出版する，発行する(動詞)' },
-    { id: '1229', en: 'expense', ja: '費用，出費，犠牲(名詞)' },
-    { id: '1230', en: 'similar', ja: '似ている，類似の(形容詞)' },
-    { id: '1231', en: 'pollution', ja: '汚染，汚れ，汚染物(名詞)' },
-    { id: '1232', en: 'foundation', ja: '土台，根拠，設立(名詞)' },
-    { id: '1233', en: 'compare', ja: 'を比較する，をたとえる(動詞)' },
-    { id: '1234', en: 'lead to', ja: 'に導く，～につながる(熟語)' },
-    { id: '1235', en: 'furthermore', ja: 'さらに，その上(副詞)' },
-    { id: '1236', en: 'more and more', ja: 'ますます多くの，更に(熟語)' },
-    { id: '1237', en: 'consume', ja: 'を消費する，消耗する(動詞)' },
-    { id: '1238', en: 'employment', ja: '雇用，採用(名詞)' },
-    { id: '1239', en: 'by chance', ja: '偶然に，たまたま(熟語)' },
-    { id: '1240', en: 'until', ja: 'までに，まで(接続詞/前置詞)' },
-    { id: '1241', en: 'on the other hand', ja: '一方で，他方で(接続詞)' },
-    { id: '1242', en: 'arrest', ja: 'を逮捕する，捕まえる(動詞)' },
-    { id: '1243', en: 'betray', ja: 'を裏切る，をだます(動詞)' },
-    { id: '1244', en: 'affect', ja: 'に影響を与える，に作用する(動詞)' },
-    { id: '1245', en: 'portable', ja: '持ち運べる，携帯用の(形容詞)' },
-    { id: '1246', en: 'construction', ja: '建設，構造，建造物(名詞)' },
-    { id: '1247', en: 'convert', ja: 'を変える，転換する(動詞)' },
-    { id: '1248', en: 'resident', ja: '住民，居住者(名詞)' },
-    { id: '1249', en: 'provide', ja: 'を供給する，提供する(動詞)' },
-    { id: '1250', en: 'metal', ja: '金属，合金(名詞)' },
-    { id: '1251', en: 'currency', ja: '通貨，流通(名詞)' },
-    { id: '1252', en: 'in detail', ja: '詳細に，具体的に(熟語)' },
-    { id: '1253', en: 'in contrast', ja: '対照的に，これに対して(接続詞)' },
-    { id: '1254', en: 'for instance', ja: '例えば，たとえ… としても(熟語)' },
-    { id: '1255', en: 'additionally', ja: '加えて，さらに，追加で(副詞)' },
-    { id: '1256', en: 'in response to', ja: 'に応じて，に反応して(熟語)' },
-    { id: '1257', en: 'at the same time', ja: '同時に，一斉に(熟語)' },
-    { id: '1258', en: 'preserved', ja: '保存された，保管された(形容詞)' },
-    { id: '1259', en: 'be known as', ja: 'として知られている，として認知されている(熟語)' },
-    { id: '1260', en: 'analyze', ja: 'を分析する，分解する(動詞)' },
-    { id: '1261', en: 'a variety of', ja: 'いろいろな，さまざまな(熟語)' },
-    { id: '1262', en: 'sympathy', ja: '同情，思いやり(名詞)' },
-    { id: '1263', en: 'flexibility', ja: 'しなやかさ，弾力性，柔軟性(名詞)' },
-    { id: '1264', en: 'manage', ja: '何とかうまくやる，管理を行う(動詞)' },
-    { id: '1265', en: 'reach out', ja: '手を延ばす，手を差し出す(熟語)' },
-    { id: '1266', en: 'for fear of', ja: 'を恐れて，を怖がって(熟語)' },
-    { id: '1267', en: 'on behalf of', ja: 'の代わりに，代わって(熟語)' },
-    { id: '1268', en: 'on account of', ja: 'のため，目的の(熟語)' },
-    { id: '1269', en: 'artificial', ja: '人工的な，人造の(形容詞)' },
-    { id: '1270', en: 'prevent A from B', ja: 'AをBから防ぐ，AをBから保護する(熟語)' },
-    { id: '1271', en: 'rather than', ja: 'よりむしろ，ではなくて(接続詞)' },
-    { id: '1272', en: 'measure', ja: '措置，測るもの/を測る(動詞)' },
-    { id: '1273', en: 'be born with', ja: '生まれつき，生来の(熟語)' },
-    { id: '1274', en: 'since then', ja: 'それ以来，それ以降(熟語)' },
-    { id: '1275', en: 'turn A into B', ja: 'AをBに(質的に)変える，AをBに(質的に)転換する(熟語)' },
-    { id: '1276', en: 'fertilizer', ja: '肥料，育成剤(名詞)' },
-    { id: '1277', en: 'made of', ja: 'で出来ている，構成されている(熟語)' },
-    { id: '1278', en: 'make sure', ja: 'を確かめる，必ず手配する(熟語)' },
-    { id: '1279', en: 'tolerate', ja: 'に耐える，寛大に取り扱う(動詞)' },
-    { id: '1280', en: 'journey', ja: '旅，旅行(名詞)' },
-    { id: '1281', en: 'get along', ja: 'うまくやる，仲良くやる(熟語)' },
-    { id: '1282', en: 'keep up with', ja: 'に遅れず付いていく，遅れないで追随する(熟語)' },
-    { id: '1283', en: 'cell', ja: '細胞，マス目(名詞)' },
-    { id: '1284', en: 'such as', ja: 'のような，似たような(熟語)' },
-    { id: '1285', en: 'annually', ja: '毎年の，年一回ずつ(副詞)' },
-    { id: '1286', en: 'invest in', ja: 'に投資する，に資本を提供する(熟語)' },
-    { id: '1287', en: 'embarrass', ja: 'を恥ずかしがらせる，を恥じさせる(動詞)' },
-    { id: '1288', en: 'enlarge', ja: 'を拡大する，を広げる(動詞)' },
-    { id: '1289', en: 'brilliant', ja: '優れた，光り輝く(形容詞)' },
-    { id: '1290', en: 'vote for', ja: 'に賛成する，に投票する(熟語)' },
-    { id: '1291', en: 'frequent', ja: '頻繁な，しばしば起こる(形容詞)' },
-    { id: '1292', en: 'gravity', ja: '重力，引力(名詞)' },
-    { id: '1293', en: 'rare', ja: 'まれな，珍しい(形容詞)' },
-    { id: '1294', en: 'decide', ja: '決心する，決定する(動詞)' },
-    { id: '1295', en: 'bank account', ja: '銀行口座，貯金口座(熟語)' },
-    { id: '1296', en: 'locate', ja: '見つける，位置を突きとめる(動詞)' },
-    { id: '1297', en: 'apply to', ja: 'に適用する，に応用する(熟語)' },
-    { id: '1298', en: 'politely', ja: '丁寧に，礼儀正しく(副詞)' },
-    { id: '1299', en: 'accidentally', ja: '誤って，知らずに(副詞)' },
-    { id: '1300', en: 'satisfy', ja: 'を満足させる，を喜ばせる(動詞)' },
-    { id: '1301', en: 'appointment', ja: '予定，約束(名詞)' },
-    { id: '1302', en: 'luxury', ja: '贅沢な/贅沢(名詞)' },
-    { id: '1303', en: 'replacement', ja: '置換，代替(名詞)' },
-    { id: '1304', en: 'in touch', ja: '連絡中，連絡が取れて(熟語)' },
-    { id: '1305', en: 'celebrate', ja: '祝う，祝福する(動詞)' },
-    { id: '1306', en: 'imitate', ja: '模倣する，真似る(動詞)' },
-    { id: '1307', en: 'assignment', ja: '割り当て，配分(名詞)' },
-    { id: '1308', en: 'instrument', ja: '楽器，音楽器具(名詞)' },
-    { id: '1309', en: 'capable of', ja: 'ができる，可能で(熟語)' },
-    { id: '1310', en: 'arrange', ja: '整える，を配置する(動詞)' },
-    { id: '1311', en: 'take after', ja: 'をまねる，に似る(熟語)' },
-    { id: '1312', en: 'guilty of', ja: '罪を犯して，違法行為をして(熟語)' },
-    { id: '1313', en: 'work out', ja: '練習する，運動する(熟語)' },
-    { id: '1314', en: 'electricity', ja: '電力，電気(名詞)' },
-    { id: '1315', en: 'composer', ja: '作曲，楽曲制作(名詞)' },
-    { id: '1316', en: 'furniture', ja: '家具，調度品(名詞)' },
-    { id: '1317', en: 'medicine', ja: '薬，医薬品(名詞)' },
-    { id: '1318', en: 'at last', ja: 'ついに，やっと(熟語)' },
-    { id: '1319', en: 'sufficient', ja: '十分な，足りている(形容詞)' },
-    { id: '1320', en: 'barely', ja: 'かろうじて，やっと(副詞)' },
-    { id: '1321', en: 'delete', ja: 'を削除する，消す(動詞)' },
-    { id: '1322', en: 'urgent', ja: '緊急の，急を要する(形容詞)' },
-    { id: '1323', en: 'generous', ja: '気前のよい，寛容な(形容詞)' },
-    { id: '1324', en: 'cruel', ja: '残酷な，ひどい(形容詞)' },
-    { id: '1325', en: 'celebration', ja: 'お祝い，祝典(名詞)' },
-    { id: '1326', en: 'reflection', ja: '反響，反射(名詞)' },
-    { id: '1327', en: 'whisper', ja: 'ささやく，を耳打ちする(動詞)' },
-    { id: '1328', en: 'deposit', ja: 'お金を預ける，を預金する(動詞)' },
-    { id: '1329', en: 'apology', ja: '謝罪，お詫び(名詞)' },
-    { id: '1330', en: 'deceive', ja: 'を欺く，をだます(動詞)' },
-    { id: '1331', en: 'endure', ja: 'を我慢する，耐える(動詞)' },
-    { id: '1332', en: 'disposal', ja: '処理，処分(動詞)' },
-    { id: '1333', en: 'statistics', ja: '統計，数字(名詞)' },
-    { id: '1334', en: 'terminal', ja: '終りの，末端の(形容詞)' },
-    { id: '1335', en: 'formation', ja: '形成，構成(名詞)' },
-    { id: '1336', en: 'envelope', ja: '封筒，封書(名詞)' },
-    { id: '1337', en: 'quarrel', ja: '喧嘩，口論，言い争い(名詞)' },
-    { id: '1338', en: 'from time to time', ja: '時々，偶に(熟語)' },
-    { id: '1339', en: 'in demand', ja: '需要のある，求められる(熟語)' },
-    { id: '1340', en: 'stand out', ja: '目立つ，すぐれている(熟語)' },
-    { id: '1341', en: 'in the meantime', ja: 'とりあえず，それまでは(熟語)' },
-    { id: '1342', en: 'to some extent', ja: 'いくらか，ある程度(熟語)' },
-    { id: '1343', en: 'at any cost', ja: 'どんな犠牲を払っても，何がなんでも(熟語)' },
-    { id: '1344', en: 'on the contrary', ja: 'その反対で，それどころか(接続詞)' },
-    { id: '1345', en: 'lose face', ja: '面子を失う，恥をかく(熟語)' },
-    { id: '1346', en: 'answer for', ja: '責任を負う，引き受ける(熟語)' },
-    { id: '1347', en: 'insist on', ja: 'するように強く求める，強調する(熟語)' },
-    { id: '1348', en: 'not always', ja: '必ずしもではない，いつもとは限らない(熟語)' },
-    { id: '1349', en: 'at that time', ja: 'あの時は，そのとき(熟語)' },
-    { id: '1350', en: 'in common', ja: '共通して，一般的に(熟語)' },
-    { id: '1351', en: 'be affected by', ja: 'の影響を受ける，影響される(熟語)' },
-    { id: '1352', en: 'luckily', ja: '幸いなことに，幸運にも(副詞)' },
-    { id: '1353', en: 'not yet', ja: 'まだ，今のところ(熟語)' },
-    { id: '1354', en: 'in response', ja: 'に応じて，に対応して(熟語)' },
-    { id: '1355', en: 'have effects on', ja: 'に影響を与える，に作用する(熟語)' },
-    { id: '1356', en: 'one day', ja: 'ある日，いつか(熟語)' },
-    { id: '1357', en: 'five senses', ja: '五感，感覚器官(熟語)' },
-    { id: '1358', en: 'ankle', ja: '足首，くるぶし(名詞)' },
-    { id: '1359', en: 'related to', ja: 'に関連する，に関わる(熟語)' },
-    { id: '1360', en: 'active', ja: '活動的な，活気のある(形容詞)' },
-    { id: '1361', en: 'lesser', ja: 'より少ない，いっそう少ない(形容詞)' },
-    { id: '1362', en: 'immune', ja: '免疫の，免疫のある(形容詞)' },
-    { id: '1363', en: 'disorder', ja: '無秩序，混乱(名詞)' },
-    { id: '1364', en: 'mental', ja: '精神の，心の(形容詞)' },
-    { id: '1365', en: 'intend to', ja: 'するつもりである，する意図がある(熟語)' },
-    { id: '1366', en: 'at present', ja: '現在は，今は(熟語)' },
-    { id: '1367', en: 'make a difference', ja: '違いを生む，差をつける(熟語)' },
-    { id: '1368', en: 'exceptionally', ja: '例外的に，非常に(副詞)' },
-    { id: '1369', en: 'almost', ja: 'ほとんど，たいてい(副詞)' },
-    { id: '1370', en: 'as to', ja: 'に関して，について(接続詞)' },
-    { id: '1371', en: 'collapse', ja: '崩壊する，つぶれる(動詞)' },
-    { id: '1372', en: 'insult', ja: 'を侮辱する，を罵る(動詞)' },
-    { id: '1373', en: 'isolated', ja: '孤立した，隔離された(形容詞)' },
-    { id: '1374', en: 'punctual', ja: '規則正しい，時間通りの(形容詞)' },
-    { id: '1375', en: 'frightened', ja: '恐ろしかった，怖かった(形容詞)' },
-    { id: '1376', en: 'guarantee', ja: 'を保証する/保証(動詞)' },
-    { id: '1377', en: 'blame', ja: 'を非難する，批判する(動詞)' },
-    { id: '1378', en: 'violate', ja: '違反する，破る(動詞)' },
-    { id: '1379', en: 'delay', ja: 'を遅らせる，先延ばしにする(動詞)' },
-    { id: '1380', en: 'immigrate', ja: '移住する，移転する(動詞)' },
-    { id: '1381', en: 'instinct', ja: '直感，本能，勘(名詞)' },
-    { id: '1382', en: 'strangely', ja: '不思議なことに，奇妙に(副詞)' },
-    { id: '1383', en: 'chase', ja: 'を追跡する，追いかける/追跡(動詞)' },
-    { id: '1384', en: 'pour', ja: 'を注ぐ，激しく降る(動詞)' },
-    { id: '1385', en: 'at one time', ja: '一度に，同時に(熟語)' },
-    { id: '1386', en: 'all the way', ja: 'はるばる，わざわざ(熟語)' },
-    { id: '1387', en: 'pull away', ja: '引き離す，引き剥がす(熟語)' },
-    { id: '1388', en: 'try out', ja: 'を試す，十分に試してみる(熟語)' },
-    { id: '1389', en: 'break into', ja: 'に押し入る，侵入する(熟語)' },
-    { id: '1390', en: 'call it a day', ja: '終了する，仕事を切り上げる(熟語)' },
-    { id: '1391', en: 'be awake', ja: '目を覚ましている，覚醒している(熟語)' },
-    { id: '1392', en: 'brightness', ja: '輝度，明るさ(名詞)' },
-    { id: '1393', en: 'have an effect on', ja: 'に影響を及ぼす，影響する(熟語)' },
-    { id: '1394', en: 'indoor', ja: '室内/屋内の(形容詞)' },
-    { id: '1395', en: 'senior', ja: 'ポストが上の/年上の人(形容詞)' },
-    { id: '1396', en: 'be adjusted to', ja: 'に調整する，調節する(熟語)' },
-    { id: '1397', en: 'specific', ja: '具体的な，特定の(形容詞)' },
-    { id: '1398', en: 'heart rate', ja: '心拍数，脈拍(名詞)' },
-    { id: '1399', en: 'be beneficial to', ja: 'に有益である，役立つ(熟語)' },
-    { id: '1400', en: 'what is called', ja: 'いわゆる，通称(熟語)' },
-    { id: '1401', en: 'symmetry', ja: '対称，左右対称(名詞)' },
-    { id: '1402', en: 'each other', ja: 'お互い，それぞれ(熟語)' },
-    { id: '1403', en: 'check for', ja: 'を調べる，確認する(熟語)' },
-    { id: '1404', en: 'over time', ja: '超過勤務，延長時間(熟語)' },
-    { id: '1405', en: 'What is more', ja: 'さらに，その上(接続詞)' },
-    { id: '1406', en: 'for some time', ja: 'しばらくの間，一時的に(熟語)' },
-    { id: '1407', en: 'at a time', ja: '１度に，同時に(熟語)' },
-    { id: '1408', en: 'parking lot', ja: '駐車場，停車場(名詞)' },
-    { id: '1409', en: 'learn by heart', ja: '暗記する(熟語)' },
-    { id: '1410', en: 'copyright', ja: '著作権，版権(名詞)' },
-    { id: '1411', en: 'director', ja: '監督，指導者，役員(名詞)' },
-    { id: '1412', en: 'in reality', ja: '実際に，現実に(熟語)' },
-    { id: '1413', en: 'depend on', ja: 'に頼る，依存する(熟語)' },
-    { id: '1414', en: 'claim to do', ja: 'することを主張する(熟語)' },
-    { id: '1415', en: 'agree with', ja: 'に賛成である，支持する(熟語)' },
-    { id: '1416', en: 'it is common to hear', ja: 'を聞くのが一般的です，よく聞かれる(熟語)' },
-    { id: '1417', en: 'temple', ja: 'お寺，寺院(名詞)' },
-    { id: '1418', en: 'bring', ja: '持って来る，連れてくる(動詞)' },
-    { id: '1419', en: 'throw away', ja: '廃棄する，を捨てる(熟語)' },
-    { id: '1420', en: 'garbage', ja: '生ゴミ，くず(名詞)' },
-    { id: '1421', en: 'environmentally', ja: '環境的に，情勢的に(副詞)' },
-    { id: '1422', en: 'process', ja: '過程，手順/を加工処理する(名詞)' },
-    { id: '1423', en: 'up to', ja: '～まで，～に至る(熟語)' },
-    { id: '1424', en: 'turn into', ja: 'に変わる，に転ずる(熟語)' },
-    { id: '1425', en: 'cut down on', ja: 'を切り詰める，節約する(熟語)' },
-    { id: '1426', en: 'fossil fuel', ja: '化石燃料(名詞)' },
-    { id: '1427', en: 'plastic bag', ja: 'ビニール袋，プラスチック袋(名詞)' },
-    { id: '1428', en: 'harm', ja: '害，危害/を害する(名詞)' },
-    { id: '1429', en: 'unbelievable', ja: '信じられない，信じがたい(形容詞)' },
-    { id: '1430', en: 'arrogant', ja: '傲慢な，横柄な(形容詞)' },
-    { id: '1431', en: 'harbor', ja: '港，港湾(名詞)' },
-    { id: '1432', en: 'temper', ja: '気性，かんしゃく(名詞)' },
-    { id: '1433', en: 'legend', ja: '伝説，言い伝え(名詞)' },
-    { id: '1434', en: 'vague', ja: '漠然とした，あいまいな(形容詞)' },
-    { id: '1435', en: 'harvest', ja: '収穫/を収穫する(動詞)' },
-    { id: '1436', en: 'planet', ja: '惑星，天体(名詞)' },
-    { id: '1437', en: 'ruin', ja: 'を台無しにする，破滅する/破滅(動詞)' },
-    { id: '1438', en: 'launch', ja: '発売する，船をおろす(動詞)' },
-    { id: '1439', en: 'refuse', ja: 'を拒否する，拒む(動詞)' },
-    { id: '1440', en: 'overtake', ja: '追い越す，追いつく(動詞)' },
-    { id: '1441', en: 'restrict', ja: 'を制限する，を限定する(動詞)' },
-    { id: '1442', en: 'stock', ja: '株，在庫/を在庫に持つ(名詞)' },
-    { id: '1443', en: 'competitor', ja: '競合他社，競争相手(名詞)' },
-    { id: '1444', en: 'spectator', ja: '観客，見物人(名詞)' },
-    { id: '1445', en: 'explorer', ja: '冒険者，探検家(名詞)' },
-    { id: '1446', en: 'remind of', ja: 'を思い出させる，気づかせる(熟語)' },
-    { id: '1447', en: 'concentrate on', ja: 'に集中する，専念する(熟語)' },
-    { id: '1448', en: 'laugh at', ja: 'を見て笑う，楽しむ(熟語)' },
-    { id: '1449', en: 'well off', ja: '裕福な，富裕な(形容詞)' },
-    { id: '1450', en: 'straight on', ja: 'まっすぐに，直線的に(熟語)' },
-    { id: '1451', en: 'far off', ja: 'はるかかなたの，遠くの(熟語)' },
-    { id: '1452', en: 'equal', ja: '同等，等しい(形容詞)' },
-    { id: '1453', en: 'drop off', ja: '落ちる，落とす(熟語)' },
-    { id: '1454', en: 'leave out', ja: '除外する，取り除く(熟語)' },
-    { id: '1455', en: 'the other', ja: 'もう一方の，反対側の(形容詞)' },
-    { id: '1456', en: 'be concerned with', ja: 'に関係している，関連している(熟語)' },
-    { id: '1457', en: 'sustainable', ja: '存続可能な，持続可能な(形容詞)' },
-    { id: '1458', en: 'leftover', ja: '残り物，食べ残し(名詞)' },
-    { id: '1459', en: 'because of', ja: '～が理由で，目的のために(熟語)' },
-    { id: '1460', en: 'hundreds of', ja: '何百もの(熟語)' },
-    { id: '1461', en: 'efficiency', ja: '効率，能率(名詞)' },
-    { id: '1462', en: 'arrangement', ja: '配置，配列(名詞)' },
-    { id: '1463', en: 'prescription', ja: '処方，処方箋(名詞)' },
-    { id: '1464', en: 'generously', ja: '惜しみなく，気前よく(副詞)' },
-    { id: '1465', en: 'do well', ja: 'うまくやる，成功する(熟語)' },
-    { id: '1466', en: 'deadline', ja: '締め切り，期限(名詞)' },
-    { id: '1467', en: 'exception', ja: '例外，特例(名詞)' },
-    { id: '1468', en: 'temporarily', ja: '一時的に，仮に(副詞)' },
-    { id: '1469', en: 'provide A with B', ja: 'AにBを提供する，AがBを供給する(熟語)' },
-    { id: '1470', en: 'fund', ja: '基金，資金(名詞)' },
-    { id: '1471', en: 'in the long run', ja: '長い目で見れば，長期間に(熟語)' },
-    { id: '1472', en: 'overlap', ja: '重ねる，積む(動詞)' },
-    { id: '1473', en: 'collaboration', ja: '共同，共作，協力(名詞)' },
-    { id: '1474', en: 'detective', ja: '探偵，刑事，捜査官(名詞)' },
-    { id: '1475', en: 'modify', ja: 'を変更する，を修正する(動詞)' },
-    { id: '1476', en: 'stir', ja: 'をかき混ぜる' },
-    { id: '1477', en: 'orbit', ja: '軌道' },
-    { id: '1478', en: 'emotionally', ja: '感情的に' },
-    { id: '1479', en: 'evaluate', ja: '評価する，見積もる(動詞)' },
-    { id: '1480', en: 'prospect', ja: '見込み，眺め(名詞)' }
-  ]
-    },
-    {
-      id: 'preset_basic_1',
-      title: '【公式】社会学の基本単語',
-      allWords: [
-        { id: '1', en: 'society', ja: '社会' },
-        { id: '2', en: 'culture', ja: '文化' },
-        { id: '3', en: 'community', ja: '共同体' },
-        { id: '4', en: 'anthropology', ja: '人類学' },
-        { id: '5', en: 'institution', ja: '制度' },
-        { id: '6', en: 'norm', ja: '規範' }
-      ]
-    },
-    {
-      id: 'preset_basic_2',
-      title: '【公式】経済学の基本単語',
-      allWords: [
-        { id: '1', en: 'economics', ja: '経済学' },
-        { id: '2', en: 'market', ja: '市場' },
-        { id: '3', en: 'profit', ja: '利益' },
-        { id: '4', en: 'cost', ja: '費用' },
-        { id: '5', en: 'consumer', ja: '消費者' }
-      ]
-    }
-  ];
+  // アプリのデータ状態
+  let appData = {
+    folders: []
+  };
   
+  let currentFolderIdx = -1;
+  let currentListIdx = -1;
 
   window.onload = function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const shareData = urlParams.get('data');
-
-    if (shareData) {
-      try {
-        let decodedText = LZString.decompressFromEncodedURIComponent(shareData);
-        if (!decodedText) {
-          decodedText = decodeURIComponent(escape(atob(shareData)));
-        }
-        if (decodedText) {
-          document.getElementById('data-input').value = decodedText;
-          window.history.replaceState({}, document.title, window.location.pathname);
-          showSetupArea();
-          alert('共有された単語データを読み込みました。テストの名前を入力して開始してください。');
-          return;
-        }
-      } catch (e) {
-        alert('共有リンクの読み込みに失敗しました。');
-      }
+    loadData();
+    if (appData.folders.length > 0) {
+      showView('home-view');
+      renderFolders();
+    } else {
+      showView('setup-view');
     }
-
-    renderDashboard();
   };
 
-  function loadAllTests() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+  // --- 画面切り替え ---
+  function showView(viewId) {
+    document.querySelectorAll('.view-area').forEach(el => el.classList.remove('active-view'));
+    document.getElementById(viewId).classList.add('active-view');
+    window.scrollTo(0, 0);
   }
 
-  function saveAllTests(testsArray) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(testsArray));
+  function showSetupView() {
+    document.getElementById('folder-name-input').value = '';
+    document.getElementById('data-input').value = '';
+    document.getElementById('btn-cancel-setup').style.display = appData.folders.length > 0 ? 'block' : 'none';
+    showView('setup-view');
   }
 
-  function saveCurrentProgress() {
-    if (!currentTestId || isPresetTest) return; 
-    
-    let tests = loadAllTests();
-    let testIndex = tests.findIndex(t => t.id === currentTestId);
-    
-    const testState = {
-      id: currentTestId,
-      title: currentTestTitle,
-      allWords: allWords,
-      currentQuizList: currentQuizList,
-      mistakeList: mistakeList,
-      currentIndex: currentIndex,
-      roundCount: roundCount,
-      lastUpdated: new Date().getTime()
-    };
-
-    if (testIndex >= 0) {
-      tests[testIndex] = testState;
-    } else {
-      tests.push(testState);
-    }
-    
-    saveAllTests(tests);
+  // --- データ保存・読み込み ---
+  function saveData() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
   }
 
-  function deleteTest(id) {
-    if (confirm('このテストのデータを削除してもよろしいですか？')) {
-      let tests = loadAllTests();
-      tests = tests.filter(t => t.id !== id);
-      saveAllTests(tests);
-      renderDashboard();
+  function loadData() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // 古い構造のデータが残っていた場合は初期化する
+      if (parsed.folders) {
+        appData = parsed;
+      } else {
+        appData = { folders: [] };
+      }
     }
   }
 
-  function renderDashboard() {
-    document.getElementById('setup-area').style.display = 'none';
-    document.getElementById('quiz-area').style.display = 'none';
-    document.getElementById('summary-area').style.display = 'none';
-    document.getElementById('dashboard-area').style.display = 'block';
-
-    const presetContainer = document.getElementById('preset-list-container');
-    presetContainer.innerHTML = '';
-    
-    for (let i = 0; i < PRESET_TESTS.length; i++) {
-      const p = PRESET_TESTS[i];
-      const card = document.createElement('div');
-      card.className = 'test-card preset-card';
-      card.innerHTML = `
-        <h3>${p.title}</h3>
-        <p>全単語数: ${p.allWords.length}語</p>
-        <div class="btn-container" style="margin-bottom: 0;">
-          <button class="start-button" onclick="startPresetTest('${p.id}')">このテストに挑戦する</button>
-        </div>
-      `;
-      presetContainer.appendChild(card);
-    }
-
-    const container = document.getElementById('test-list-container');
-    container.innerHTML = '';
-    const tests = loadAllTests();
-
-    if (tests.length === 0) {
-      container.innerHTML = '<p>現在、自作して進行中のテストはありません。</p>';
+  // --- データのインポートと自動分割 ---
+  function importData() {
+    const folderName = document.getElementById('folder-name-input').value.trim() || '無題のフォルダ';
+    const text = document.getElementById('data-input').value.trim();
+    if (!text) {
+      alert('データが入力されていない。');
       return;
     }
 
-    tests.sort((a, b) => b.lastUpdated - a.lastUpdated);
-
-    for (let i = 0; i < tests.length; i++) {
-      const t = tests[i];
-      const card = document.createElement('div');
-      card.className = 'test-card';
-      
-      const titleStr = t.title || '無題のテスト';
-      const progressStr = `第 ${t.roundCount} 周目 : ${t.currentIndex} / ${t.currentQuizList.length} 問 完了`;
-      
-      card.innerHTML = `
-        <h3>${titleStr}</h3>
-        <p>全単語数: ${t.allWords.length}語</p>
-        <p>現在の進捗: ${progressStr}</p>
-        <div class="btn-container" style="margin-bottom: 0;">
-          <button class="action-button" onclick="resumeTest('${t.id}')">続きから再開する</button>
-          <button class="danger-button" onclick="deleteTest('${t.id}')">削除する</button>
-        </div>
-      `;
-      container.appendChild(card);
-    }
-  }
-
-  function showSetupArea() {
-    document.getElementById('dashboard-area').style.display = 'none';
-    document.getElementById('setup-area').style.display = 'block';
-  }
-
-  function goToDashboard() {
-    currentTestId = null;
-    isPresetTest = false;
-    renderDashboard();
-  }
-
-  function startPresetTest(id) {
-    const presetData = PRESET_TESTS.find(p => p.id === id);
-    if (presetData) {
-      currentTestId = presetData.id;
-      currentTestTitle = presetData.title;
-      allWords = [...presetData.allWords];
-      isPresetTest = true; 
-      roundCount = 1;
-      
-      document.getElementById('dashboard-area').style.display = 'none';
-      document.getElementById('quiz-area').style.display = 'block';
-      document.getElementById('current-test-title').innerText = currentTestTitle;
-      
-      startRound(allWords);
-    }
-  }
-
-  function resumeTest(id) {
-    const tests = loadAllTests();
-    const testData = tests.find(t => t.id === id);
+    const lines = text.split('\n');
+    let newWords = [];
     
-    if (testData) {
-      currentTestId = testData.id;
-      currentTestTitle = testData.title;
-      allWords = testData.allWords;
-      currentQuizList = testData.currentQuizList;
-      mistakeList = testData.mistakeList;
-      currentIndex = testData.currentIndex;
-      roundCount = testData.roundCount;
-      isPresetTest = false;
-      
-      document.getElementById('dashboard-area').style.display = 'none';
-      document.getElementById('quiz-area').style.display = 'block';
-      document.getElementById('current-test-title').innerText = currentTestTitle;
-      
-      showQuestion();
-    }
-  }
-
-  function startNewTest() {
-    const inputText = document.getElementById('data-input').value.trim();
-    if (!inputText) {
-      alert('データを入力してください。');
-      return;
-    }
-
-    allWords = [];
-    const lines = inputText.split('\n');
     for (let i = 0; i < lines.length; i++) {
-      const parts = lines[i].split('\t');
-      if (parts.length >= 3) {
-        allWords.push({
-          id: parts[0].trim(),
-          en: parts[1].trim(),
-          ja: parts[2].trim()
-        });
+      const parts = lines[i].split(/[\t,]/);
+      const en = parts.length >= 2 ? parts[parts.length - 2].trim() : '';
+      const ja = parts.length >= 2 ? parts[parts.length - 1].trim() : '';
+      
+      if (en && ja) {
+        newWords.push({ en: en, ja: ja, errCount: 0 });
       }
     }
 
-    if (allWords.length < 4) {
-      alert('4択を作るため、最低でも4つ以上の単語データを入力してください。');
+    if (newWords.length < 4) {
+      alert('4択を作るため、最低でも4つ以上の単語データが必要である。');
       return;
     }
 
-    let inputTitle = document.getElementById('test-title-input').value.trim();
-    if (!inputTitle) {
-      inputTitle = allWords[0].en + ' などのテスト';
+    const newFolder = {
+      title: folderName,
+      lists: []
+    };
+
+    const chunkSize = 100;
+    const circles = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
+
+    // 100単語ずつ分割処理
+    for (let i = 0; i < newWords.length; i += chunkSize) {
+      const chunk = newWords.slice(i, i + chunkSize);
+      const listIndex = Math.floor(i / chunkSize);
+      const suffix = circles[listIndex] ? circles[listIndex] : '(' + (listIndex + 1) + ')';
+      
+      newFolder.lists.push({
+        title: folderName + suffix,
+        words: chunk,
+        progress: {
+          isPaused: false,
+          currentIndex: 0,
+          score: 0,
+          quizOrder: [],
+          wrongThisTime: []
+        }
+      });
     }
 
-    currentTestId = 'test_' + new Date().getTime();
-    currentTestTitle = inputTitle;
-    roundCount = 1;
-    isPresetTest = false;
+    appData.folders.push(newFolder);
+    saveData();
     
-    document.getElementById('setup-area').style.display = 'none';
-    document.getElementById('quiz-area').style.display = 'block';
-    document.getElementById('current-test-title').innerText = currentTestTitle;
-    
-    startRound(allWords);
+    showView('home-view');
+    renderFolders();
   }
 
-  function startRound(listToTest) {
-    currentQuizList = [...listToTest];
-    shuffleArray(currentQuizList);
-    mistakeList = [];
-    currentIndex = 0;
-    
-    saveCurrentProgress();
-    
-    document.getElementById('result-message').innerText = '';
-    document.getElementById('summary-area').style.display = 'none';
-    document.getElementById('quiz-area').style.display = 'block';
-    
-    showQuestion();
-  }
+  // --- ホーム画面（フォルダ一覧）の描画 ---
+  function renderFolders() {
+    const container = document.getElementById('folders-container');
+    container.innerHTML = '';
 
-  function showQuestion() {
-    if (currentIndex >= currentQuizList.length) {
-      endRound();
+    if (appData.folders.length === 0) {
+      container.innerHTML = '<p>フォルダが存在しない。</p>';
       return;
     }
 
-    const currentWord = currentQuizList[currentIndex];
-    document.getElementById('status').innerText = `第 ${roundCount} 周目 : ${currentIndex + 1} / ${currentQuizList.length} 問`;
+    appData.folders.forEach((folder, fIdx) => {
+      const box = document.createElement('div');
+      box.className = 'folder-box';
+      
+      const title = document.createElement('h3');
+      title.innerText = folder.title;
+      title.style.marginTop = '0';
+      box.appendChild(title);
+      
+      folder.lists.forEach((list, lIdx) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-outline list-btn';
+        btn.innerText = list.title + ' (' + list.words.length + '語)';
+        btn.onclick = function() { openListDetail(fIdx, lIdx); };
+        box.appendChild(btn);
+      });
+      
+      container.appendChild(box);
+    });
+  }
+
+  // --- リスト詳細画面の描画 ---
+  function openListDetail(fIdx, lIdx) {
+    currentFolderIdx = fIdx;
+    currentListIdx = lIdx;
+    
+    const list = appData.folders[fIdx].lists[lIdx];
+    document.getElementById('detail-title').innerText = list.title;
+    
+    const container = document.getElementById('word-list-container');
+    container.innerHTML = '';
+
+    list.words.forEach(word => {
+      const item = document.createElement('div');
+      const colorLevel = Math.min(word.errCount, 4);
+      item.className = 'word-item bg-err-' + colorLevel;
+      item.innerHTML = '<span class="word-en">' + word.en + '</span><span class="word-ja">' + word.ja + '</span>';
+      container.appendChild(item);
+    });
+
+    const btnContainer = document.getElementById('action-buttons');
+    btnContainer.innerHTML = '';
+
+    if (list.progress.isPaused) {
+      btnContainer.innerHTML = 
+        '<button class="btn btn-outline" onclick="startTest(true)">最初からテスト</button>' +
+        '<button class="btn btn-primary" onclick="startTest(false)">続きから再開</button>';
+    } else {
+      btnContainer.innerHTML = 
+        '<button class="btn btn-primary" onclick="startTest(true)">テストを開始</button>';
+    }
+    
+    showView('list-detail-view');
+  }
+
+  // --- テストの開始・再開 ---
+  function startTest(fromBeginning) {
+    const list = appData.folders[currentFolderIdx].lists[currentListIdx];
+    
+    if (fromBeginning) {
+      let order = [];
+      for (let i = 0; i < list.words.length; i++) order.push(i);
+      shuffleArray(order);
+
+      list.progress = {
+        isPaused: false,
+        currentIndex: 0,
+        score: 0,
+        quizOrder: order,
+        wrongThisTime: []
+      };
+    } else {
+      list.progress.isPaused = false;
+    }
+    
+    saveData();
+    showView('quiz-view');
+    renderQuiz();
+  }
+
+  // --- クイズの描画 ---
+  function renderQuiz() {
+    const list = appData.folders[currentFolderIdx].lists[currentListIdx];
+    const p = list.progress;
+    
+    if (p.currentIndex >= p.quizOrder.length) {
+      finishTest();
+      return;
+    }
+
+    const currentWordIndex = p.quizOrder[p.currentIndex];
+    const currentWord = list.words[currentWordIndex];
+
+    document.getElementById('progress-text').innerText = '問題 ' + (p.currentIndex + 1) + ' / ' + p.quizOrder.length;
     document.getElementById('question-word').innerText = currentWord.en;
+    document.getElementById('result-message').innerText = '';
 
     const choicesContainer = document.getElementById('choices-container');
     choicesContainer.innerHTML = '';
 
-    const choices = generateChoices(currentWord);
+    const choices = generateChoices(currentWord.ja);
 
-    for (let i = 0; i < choices.length; i++) {
+    choices.forEach(choiceJa => {
       const btn = document.createElement('button');
-      btn.className = 'choice-btn';
-      btn.innerText = choices[i].ja;
-      btn.onclick = function() { checkAnswer(choices[i].ja, currentWord.ja, currentWord); };
+      btn.className = 'btn choice-btn';
+      btn.innerText = choiceJa;
+      btn.onclick = function() { checkAnswer(choiceJa, currentWord.ja, currentWordIndex); };
       choicesContainer.appendChild(btn);
-    }
+    });
   }
 
-  function generateChoices(correctWord) {
-    const choices = [correctWord];
-    const otherWords = allWords.filter(word => word.en !== correctWord.en);
-    shuffleArray(otherWords);
+  // --- 選択肢の生成 ---
+  function generateChoices(correctJa) {
+    const list = appData.folders[currentFolderIdx].lists[currentListIdx];
+    const choices = [correctJa];
+    
+    const otherJaList = list.words.map(w => w.ja).filter(ja => ja !== correctJa);
+    const uniqueOthers = [...new Set(otherJaList)];
+    shuffleArray(uniqueOthers);
 
-    for (let i = 0; i < 3; i++) {
-      if (otherWords[i]) {
-        choices.push(otherWords[i]);
-      }
+    // リスト内の単語が少なくて4択を作れない場合、他のフォルダからも補充する
+    if (uniqueOthers.length < 3) {
+       appData.folders.forEach(f => {
+         f.lists.forEach(l => {
+           l.words.forEach(w => {
+             if (w.ja !== correctJa && !uniqueOthers.includes(w.ja)) {
+               uniqueOthers.push(w.ja);
+             }
+           });
+         });
+       });
+       shuffleArray(uniqueOthers);
+    }
+
+    for (let i = 0; i < 3 && i < uniqueOthers.length; i++) {
+      choices.push(uniqueOthers[i]);
     }
     
     shuffleArray(choices);
     return choices;
   }
 
-  function checkAnswer(selectedJa, correctJa, currentWord) {
-    if (selectedJa !== correctJa) {
-      mistakeList.push(currentWord);
-      alert(`不正解です。\n正解は「${correctJa}」です。`);
+  // --- 解答チェック ---
+  function checkAnswer(selectedJa, correctJa, wordIndex) {
+    const list = appData.folders[currentFolderIdx].lists[currentListIdx];
+    const resultDiv = document.getElementById('result-message');
+    const btns = document.getElementById('choices-container').getElementsByTagName('button');
+    
+    for (let i = 0; i < btns.length; i++) {
+      btns[i].disabled = true;
     }
 
-    currentIndex++;
-    saveCurrentProgress();
-    showQuestion();
-  }
-
-  function endRound() {
-    if (mistakeList.length === 0) {
-      if (!isPresetTest) {
-        let tests = loadAllTests();
-        tests = tests.filter(t => t.id !== currentTestId);
-        saveAllTests(tests);
-      }
-      
-      document.getElementById('status').innerText = '';
-      document.getElementById('question-word').innerText = '全問正解クリア！';
-      document.getElementById('choices-container').innerHTML = '';
-      document.getElementById('result-message').innerText = 'お疲れ様でした。すべての単語を覚えました。';
-      
-      const backBtn = document.createElement('button');
-      backBtn.className = 'action-button';
-      backBtn.innerText = '一覧画面に戻る';
-      backBtn.onclick = function() { goToDashboard(); };
-      
-      const container = document.createElement('div');
-      container.className = 'btn-container';
-      container.appendChild(backBtn);
-      document.getElementById('quiz-area').appendChild(container);
-      
-      currentTestId = null;
+    if (selectedJa === correctJa) {
+      resultDiv.style.color = 'var(--success)';
+      resultDiv.innerText = '正解！';
+      list.progress.score++;
     } else {
-      showMistakeSummary();
+      resultDiv.style.color = 'var(--danger)';
+      resultDiv.innerText = '不正解。正解は「' + correctJa + '」である';
+      list.words[wordIndex].errCount++;
+      if (!list.progress.wrongThisTime.includes(wordIndex)) {
+        list.progress.wrongThisTime.push(wordIndex);
+      }
+    }
+
+    setTimeout(() => {
+      list.progress.currentIndex++;
+      saveData();
+      renderQuiz();
+    }, 1500);
+  }
+
+  // --- テストの中断 ---
+  function interruptQuiz() {
+    const list = appData.folders[currentFolderIdx].lists[currentListIdx];
+    list.progress.isPaused = true;
+    saveData();
+    openListDetail(currentFolderIdx, currentListIdx);
+  }
+
+  // --- テスト終了と結果表示 ---
+  function finishTest() {
+    showView('result-view');
+    const list = appData.folders[currentFolderIdx].lists[currentListIdx];
+    const p = list.progress;
+    
+    document.getElementById('final-score').innerText = p.score + ' / ' + p.quizOrder.length;
+
+    const summaryDiv = document.getElementById('wrong-words-summary');
+    if (p.wrongThisTime.length > 0) {
+      let html = '<h3>今回間違えた単語</h3><div class="word-list">';
+      p.wrongThisTime.forEach(index => {
+        const w = list.words[index];
+        const colorLevel = Math.min(w.errCount, 4);
+        html += '<div class="word-item bg-err-' + colorLevel + '"><span class="word-en">' + w.en + '</span><span class="word-ja">' + w.ja + '</span></div>';
+      });
+      html += '</div>';
+      summaryDiv.innerHTML = html;
+    } else {
+      summaryDiv.innerHTML = '<h3 style="color: var(--success); text-align:center;">全問正解である。素晴らしい。</h3>';
+    }
+
+    list.progress.isPaused = false;
+    list.progress.currentIndex = 0;
+    list.progress.score = 0;
+    list.progress.quizOrder = [];
+    saveData();
+  }
+
+  // --- ホーム画面へ戻る ---
+  function returnToHome() {
+    showView('home-view');
+    renderFolders();
+  }
+
+  // --- データの完全消去 ---
+  function resetAllData() {
+    if (confirm('登録した単語データと学習記録をすべて消去してよいか？\n（この操作は取り消せない）')) {
+      localStorage.removeItem(STORAGE_KEY);
+      appData = { folders: [] };
+      document.getElementById('data-input').value = '';
+      document.getElementById('folder-name-input').value = '';
+      showView('setup-view');
     }
   }
 
-  function showMistakeSummary() {
-    document.getElementById('quiz-area').style.display = 'none';
-    document.getElementById('summary-area').style.display = 'block';
-    document.getElementById('summary-round').innerText = roundCount;
-    
-    const tbody = document.getElementById('mistake-table-body');
-    tbody.innerHTML = '';
-    
-    for (let i = 0; i < mistakeList.length; i++) {
-      const tr = document.createElement('tr');
-      const tdEn = document.createElement('td');
-      tdEn.innerText = mistakeList[i].en;
-      const tdJa = document.createElement('td');
-      tdJa.innerText = mistakeList[i].ja;
-      tr.appendChild(tdEn);
-      tr.appendChild(tdJa);
-      tbody.appendChild(tr);
-    }
-  }
-
-  function startNextRound() {
-    roundCount++;
-    startRound(mistakeList);
-  }
-
+  // --- 配列のシャッフル（Fisher-Yates） ---
   function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      const temp = array[i];
-      array[i] = array[j];
-      array[j] = temp;
-    }
-  }
-
-  function generateShareLink() {
-    const inputText = document.getElementById('data-input').value.trim();
-    if (!inputText) {
-      alert('データが入力されていません。');
-      return;
-    }
-    
-    const compressedData = LZString.compressToEncodedURIComponent(inputText);
-    const currentUrl = window.location.href.split('?')[0];
-    const shareUrl = currentUrl + '?data=' + compressedData;
-    
-    const inputElement = document.getElementById('share-link-input');
-    inputElement.value = shareUrl;
-    inputElement.style.display = 'block';
-    
-    inputElement.focus();
-    inputElement.setSelectionRange(0, 99999);
-    
-    try {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        alert('共有用のリンクを作成し、クリップボードにコピーしました。');
-      }).catch(err => {
-        alert('共有用のリンクを作成しました。枠内のURLをコピーしてください。');
-      });
-    } catch (err) {
-      alert('共有用のリンクを作成しました。枠内のURLをコピーしてください。');
-    }
-  }
-
-  function openRequestForm() {
-    // ここにGoogleフォームのURLを指定する
-    const formUrl = 'https://docs.google.com/forms/'; 
-    
-    if (formUrl === 'https://docs.google.com/forms/') {
-      alert('現在、フォームのURLが設定されていません。\n作成者の方は、プログラム内の「formUrl」にご自身のGoogleフォームのリンクを設定してください。');
-    } else {
-      window.open(formUrl, '_blank');
+      [array[i], array[j]] = [array[j], array[i]];
     }
   }
 </script>
-
 </body>
 </html>
